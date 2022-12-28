@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option go_package = "github.com/badochov/distributed-shortest-path/src/services/worker/link/proto";
+
+service Link {
+  rpc Add(AddRequest) returns (AddResponse) {}
+}
+
+message AddRequest {
+  int32 a = 1;
+  int32 b = 2;
+}
+
+message AddResponse {
+  int32 res = 1;
+}
