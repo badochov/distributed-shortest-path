@@ -8,13 +8,13 @@ import (
 	"io"
 )
 
-type WorkerServiceClient interface {
-	rpc.WorkerServiceClient
+type WorkerClient interface {
+	rpc.WorkerClient
 	io.Closer
 }
 
 type client struct {
-	rpc.WorkerServiceClient
+	rpc.WorkerClient
 	conn *grpc.ClientConn
 }
 
@@ -23,10 +23,10 @@ func (c client) Close() error {
 }
 
 // New open new grpc connection to WorkerService. Must be closed after use.
-func New(ctx context.Context, addr string) (WorkerServiceClient, error) {
+func New(ctx context.Context, addr string) (WorkerClient, error) {
 	conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
 	}
-	return client{WorkerServiceClient: rpc.NewWorkerServiceClient(conn), conn: conn}, nil
+	return client{WorkerClient: rpc.NewWorkerClient(conn), conn: conn}, nil
 }

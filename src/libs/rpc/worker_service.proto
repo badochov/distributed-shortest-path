@@ -2,7 +2,7 @@ syntax = "proto3";
 
 option go_package = "github.com/badochov/distributed-shortest-path/src/libs/rpc";
 
-service WorkerService {
+service Worker {
   rpc AssignSegment(Segment) returns (Ack) {}
 }
 
