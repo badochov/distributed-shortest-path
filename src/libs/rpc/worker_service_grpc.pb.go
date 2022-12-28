@@ -18,7 +18,7 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// WorkerClient is the client API for Worker service.
+// WorkerClient is the client API for Worker service_server.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type WorkerClient interface {
@@ -42,7 +42,7 @@ func (c *workerClient) AssignSegment(ctx context.Context, in *Segment, opts ...g
 	return out, nil
 }
 
-// WorkerServer is the server API for Worker service.
+// WorkerServer is the server API for Worker service_server.
 // All implementations must embed UnimplementedWorkerServer
 // for forward compatibility
 type WorkerServer interface {
@@ -59,7 +59,7 @@ func (UnimplementedWorkerServer) AssignSegment(context.Context, *Segment) (*Ack,
 }
 func (UnimplementedWorkerServer) mustEmbedUnimplementedWorkerServer() {}
 
-// UnsafeWorkerServer may be embedded to opt out of forward compatibility for this service.
+// UnsafeWorkerServer may be embedded to opt out of forward compatibility for this service_server.
 // Use of this interface is not recommended, as added methods to WorkerServer will
 // result in compilation errors.
 type UnsafeWorkerServer interface {
@@ -88,7 +88,7 @@ func _Worker_AssignSegment_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
-// Worker_ServiceDesc is the grpc.ServiceDesc for Worker service.
+// Worker_ServiceDesc is the grpc.ServiceDesc for Worker service_server.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Worker_ServiceDesc = grpc.ServiceDesc{

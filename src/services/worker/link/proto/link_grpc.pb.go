@@ -18,7 +18,7 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// LinkClient is the client API for Link service.
+// LinkClient is the client API for Link service_server.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type LinkClient interface {
@@ -42,7 +42,7 @@ func (c *linkClient) Add(ctx context.Context, in *AddRequest, opts ...grpc.CallO
 	return out, nil
 }
 
-// LinkServer is the server API for Link service.
+// LinkServer is the server API for Link service_server.
 // All implementations must embed UnimplementedLinkServer
 // for forward compatibility
 type LinkServer interface {
@@ -59,7 +59,7 @@ func (UnimplementedLinkServer) Add(context.Context, *AddRequest) (*AddResponse, 
 }
 func (UnimplementedLinkServer) mustEmbedUnimplementedLinkServer() {}
 
-// UnsafeLinkServer may be embedded to opt out of forward compatibility for this service.
+// UnsafeLinkServer may be embedded to opt out of forward compatibility for this service_server.
 // Use of this interface is not recommended, as added methods to LinkServer will
 // result in compilation errors.
 type UnsafeLinkServer interface {
@@ -88,7 +88,7 @@ func _Link_Add_Handler(srv interface{}, ctx context.Context, dec func(interface{
 	return interceptor(ctx, in, info, handler)
 }
 
-// Link_ServiceDesc is the grpc.ServiceDesc for Link service.
+// Link_ServiceDesc is the grpc.ServiceDesc for Link service_server.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Link_ServiceDesc = grpc.ServiceDesc{

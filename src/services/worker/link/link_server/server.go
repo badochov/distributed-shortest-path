@@ -1,9 +1,9 @@
-package service
+package link_server
 
 import (
-	"context"
-	"github.com/badochov/distributed-shortest-path/src/libs/rpc"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/common"
+	"github.com/badochov/distributed-shortest-path/src/services/worker/link/proto"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"log"
 	"net"
@@ -13,11 +13,11 @@ type Deps struct {
 	Listener net.Listener
 }
 
-type workerService struct {
-	rpc.UnimplementedWorkerServer
+type linkService struct {
+	proto.UnimplementedLinkServer
 }
 
-func (s *workerService) AssignSegment(ctx context.Context, segment *rpc.Segment) (*rpc.Ack, error) {
+func (s *linkService) Add(ctx context.Context, req *proto.AddRequest) (*proto.AddResponse, error) {
 	// TODO
 	panic("implement me")
 }
@@ -31,14 +31,14 @@ func (s *serv) Run() error {
 	return s.server.Serve(s.listener)
 }
 
-type Service interface {
+type Server interface {
 	common.Runner
 }
 
-func New(deps Deps) Service {
+func New(deps Deps) Server {
 	s := grpc.NewServer()
 
-	rpc.RegisterWorkerServer(s, &workerService{})
+	proto.RegisterLinkServer(s, &linkService{})
 	log.Printf("server listening at %v", deps.Listener.Addr())
 
 	return &serv{server: s, listener: deps.Listener}
