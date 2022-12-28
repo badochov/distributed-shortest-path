@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/badochov/distributed-shortest-path/src/services/manager/common"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/executor"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/server/api"
 	"github.com/gin-gonic/gin"
@@ -12,19 +13,28 @@ type Deps struct {
 }
 
 type Server interface {
-	Run() error
+	common.Runner
 }
 
 type server struct {
-	engine *gin.Engine
+	engine  *gin.Engine
+	handler handler
 }
 
 func (s *server) Run() error {
+	if err := s.handler.Run(); err != nil {
+		return err
+	}
+
 	return s.engine.Run()
 }
 
 type handler struct {
 	executor executor.Executor
+}
+
+func (h *handler) Run() error {
+	return h.executor.Run()
 }
 
 func (h *handler) ShortestPath(c *gin.Context) {
@@ -95,5 +105,8 @@ func New(deps Deps) Server {
 	router.POST("/add_vertices", h.AddVertices)
 	router.POST("/add_edges", h.AddEdges)
 
-	return &server{engine: router}
+	return &server{
+		engine:  router,
+		handler: h,
+	}
 }

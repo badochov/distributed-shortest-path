@@ -1,13 +1,19 @@
 package main
 
 import (
+	"github.com/badochov/distributed-shortest-path/src/services/manager/discoverer"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/executor"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/server"
 	"log"
 )
 
 func main() {
-	executorDeps := executor.Deps{}
+	discovererDeps := discoverer.Deps{}
+	d := discoverer.New(discovererDeps)
+
+	executorDeps := executor.Deps{
+		Discoverer: d,
+	}
 	exctr := executor.New(executorDeps)
 
 	serverDeps := server.Deps{

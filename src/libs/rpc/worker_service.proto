@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option go_package = "github.com/badochov/distributed-shortest-path/src/libs/rpc";
+
+service WorkerService {
+  rpc AssignSegment(Segment) returns (Ack) {}
+}
+
+message Segment {
+  int32 segmentId = 1;
+}
+
+message Ack {
+
+}
