@@ -1,11 +1,13 @@
 go 1.19
 
 use (
-	./libs/rpc
+	libs/rpc
 	services/worker
 	services/manager
+	libs/db
 )
 
 replace (
 	github.com/badochov/distributed-shortest-path/src/libs/rpc v0.0.0 => ./libs/rpc
+	github.com/badochov/distributed-shortest-path/src/libs/db v0.0.0 => ./libs/db
 )

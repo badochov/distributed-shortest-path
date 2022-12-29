@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/link/link_server"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/service_server"
+	"github.com/badochov/distributed-shortest-path/src/services/worker/worker"
 	"log"
 	"net"
 )
@@ -16,12 +18,23 @@ func newListener(port int) (net.Listener, error) {
 }
 
 func main() {
+	orm, err := db.ConnectToDefault()
+	if err != nil {
+		log.Fatal("Error opening db,", err)
+	}
+
+	workerDeps := worker.Deps{
+		Db : orm,
+	}
+	wrkr := worker.New(workerDeps)
+
 	lW, err := newListener(workerServicePort)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	serviceDeps := service_server.Deps{
 		Listener: lW,
+		Worker: wrkr,
 	}
 	sW := service_server.New(serviceDeps)
 
@@ -37,6 +50,7 @@ func main() {
 	}
 	linkDeps := link_server.Deps{
 		Listener: lL,
+		Worker: wrkr,
 	}
 	sL := link_server.New(linkDeps)
 

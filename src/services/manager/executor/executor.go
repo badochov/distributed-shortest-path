@@ -4,11 +4,12 @@ import (
 	"github.com/badochov/distributed-shortest-path/src/services/manager/common"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/discoverer"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/server/api"
+	"gorm.io/gorm"
 )
 
 type Deps struct {
 	Discoverer discoverer.Discoverer
-	// TODO add database
+	Db         *gorm.DB
 }
 
 type Executor interface {
@@ -22,6 +23,7 @@ type Executor interface {
 
 type executor struct {
 	discoverer discoverer.Discoverer
+	db         *gorm.DB
 }
 
 func (e *executor) Run() error {
@@ -56,5 +58,6 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 func New(deps Deps) Executor {
 	return &executor{
 		discoverer: deps.Discoverer,
+		db:         deps.Db,
 	}
 }
