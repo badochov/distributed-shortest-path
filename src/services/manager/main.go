@@ -5,6 +5,8 @@ import (
 	"github.com/badochov/distributed-shortest-path/src/services/manager/discoverer"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/executor"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/server"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"log"
 )
 
@@ -14,7 +16,12 @@ func main() {
 		log.Fatal("Error opening db,", err)
 	}
 
-	discovererDeps := discoverer.Deps{}
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+	clientset := kubernetes.NewForConfigOrDie(config)
+	discovererDeps := discoverer.Deps{Client: clientset}
 	d := discoverer.New(discovererDeps)
 
 	executorDeps := executor.Deps{

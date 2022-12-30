@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"context"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/common"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/discoverer"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/server/api"
@@ -27,8 +28,8 @@ type executor struct {
 }
 
 func (e *executor) Run() error {
-	if err := e.discoverer.Run(); err != nil {
-		return nil
+	if err := e.discoverer.Run(context.TODO()); err != nil {
+		return err
 	}
 
 	//TODO implement me
