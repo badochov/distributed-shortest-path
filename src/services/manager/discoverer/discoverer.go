@@ -24,7 +24,10 @@ type WorkerInstance struct {
 }
 
 type Discoverer interface {
+	// InstancesChan returns channel streaming data regarding updates of set of instances.
 	InstancesChan() <-chan []WorkerInstance
+	// InstanceStatuses returns channel streaming data regarding updates of statuses on instances.
+	// Useful for checking health of the worker.
 	InstanceStatuses() <-chan WorkerInstanceStatus
 
 	Run(ctx context.Context) error
