@@ -1,0 +1,240 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers-region-0
+  labels:
+    app: workers
+    region: "0"
+spec:
+  selector:
+    app: workers
+    region: "0"
+  ports:
+    - port: 8080
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers-region-1
+  labels:
+    app: workers
+    region: "1"
+spec:
+  selector:
+    app: workers
+    region: "1"
+  ports:
+    - port: 8080
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers-region-2
+  labels:
+    app: workers
+    region: "2"
+spec:
+  selector:
+    app: workers
+    region: "2"
+  ports:
+    - port: 8080
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers-region-3
+  labels:
+    app: workers
+    region: "3"
+spec:
+  selector:
+    app: workers
+    region: "3"
+  ports:
+    - port: 8080
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers-region-4
+  labels:
+    app: workers
+    region: "4"
+spec:
+  selector:
+    app: workers
+    region: "4"
+  ports:
+    - port: 8080
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers-region-5
+  labels:
+    app: workers
+    region: "5"
+spec:
+  selector:
+    app: workers
+    region: "5"
+  ports:
+    - port: 8080
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers-region-6
+  labels:
+    app: workers
+    region: "6"
+spec:
+  selector:
+    app: workers
+    region: "6"
+  ports:
+    - port: 8080
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers-region-7
+  labels:
+    app: workers
+    region: "7"
+spec:
+  selector:
+    app: workers
+    region: "7"
+  ports:
+    - port: 8080
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers-region-8
+  labels:
+    app: workers
+    region: "8"
+spec:
+  selector:
+    app: workers
+    region: "8"
+  ports:
+    - port: 8080
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers-region-9
+  labels:
+    app: workers
+    region: "9"
+spec:
+  selector:
+    app: workers
+    region: "9"
+  ports:
+    - port: 8080
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers-region-10
+  labels:
+    app: workers
+    region: "10"
+spec:
+  selector:
+    app: workers
+    region: "10"
+  ports:
+    - port: 8080
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers-region-11
+  labels:
+    app: workers
+    region: "11"
+spec:
+  selector:
+    app: workers
+    region: "11"
+  ports:
+    - port: 8080
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers-region-12
+  labels:
+    app: workers
+    region: "12"
+spec:
+  selector:
+    app: workers
+    region: "12"
+  ports:
+    - port: 8080
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers-region-13
+  labels:
+    app: workers
+    region: "13"
+spec:
+  selector:
+    app: workers
+    region: "13"
+  ports:
+    - port: 8080
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers-region-14
+  labels:
+    app: workers
+    region: "14"
+spec:
+  selector:
+    app: workers
+    region: "14"
+  ports:
+    - port: 8080
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers-region-15
+  labels:
+    app: workers
+    region: "15"
+spec:
+  selector:
+    app: workers
+    region: "15"
+  ports:
+    - port: 8080
+  type: LoadBalancer
+---

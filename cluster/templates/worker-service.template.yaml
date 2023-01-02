@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers-region-{{.Region}}
+  labels:
+    app: workers
+    region: "{{.Region}}"
+spec:
+  selector:
+    app: workers
+    region: "{{.Region}}"
+  ports:
+    - port: 8080
+  type: LoadBalancer

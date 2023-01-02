@@ -1,0 +1,704 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers-region-0
+  labels:
+    app: workers
+    region: "0"
+spec:
+  selector:
+    matchLabels:
+      app: workers
+      region: "0"
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: workers
+        region: "0"
+    spec:
+      containers:
+      - name: worker
+        image: worker:0.0.1
+        env:
+        - name: REGION
+          value: "0"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+            httpGet:
+                path: /healthz
+                port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
+      affinity:
+          podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                      matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - workers
+                topologyKey: kubernetes.io/node
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers-region-1
+  labels:
+    app: workers
+    region: "1"
+spec:
+  selector:
+    matchLabels:
+      app: workers
+      region: "1"
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: workers
+        region: "1"
+    spec:
+      containers:
+      - name: worker
+        image: worker:0.0.1
+        env:
+        - name: REGION
+          value: "1"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+            httpGet:
+                path: /healthz
+                port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
+      affinity:
+          podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                      matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - workers
+                topologyKey: kubernetes.io/node
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers-region-2
+  labels:
+    app: workers
+    region: "2"
+spec:
+  selector:
+    matchLabels:
+      app: workers
+      region: "2"
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: workers
+        region: "2"
+    spec:
+      containers:
+      - name: worker
+        image: worker:0.0.1
+        env:
+        - name: REGION
+          value: "2"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+            httpGet:
+                path: /healthz
+                port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
+      affinity:
+          podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                      matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - workers
+                topologyKey: kubernetes.io/node
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers-region-3
+  labels:
+    app: workers
+    region: "3"
+spec:
+  selector:
+    matchLabels:
+      app: workers
+      region: "3"
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: workers
+        region: "3"
+    spec:
+      containers:
+      - name: worker
+        image: worker:0.0.1
+        env:
+        - name: REGION
+          value: "3"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+            httpGet:
+                path: /healthz
+                port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
+      affinity:
+          podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                      matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - workers
+                topologyKey: kubernetes.io/node
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers-region-4
+  labels:
+    app: workers
+    region: "4"
+spec:
+  selector:
+    matchLabels:
+      app: workers
+      region: "4"
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: workers
+        region: "4"
+    spec:
+      containers:
+      - name: worker
+        image: worker:0.0.1
+        env:
+        - name: REGION
+          value: "4"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+            httpGet:
+                path: /healthz
+                port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
+      affinity:
+          podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                      matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - workers
+                topologyKey: kubernetes.io/node
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers-region-5
+  labels:
+    app: workers
+    region: "5"
+spec:
+  selector:
+    matchLabels:
+      app: workers
+      region: "5"
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: workers
+        region: "5"
+    spec:
+      containers:
+      - name: worker
+        image: worker:0.0.1
+        env:
+        - name: REGION
+          value: "5"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+            httpGet:
+                path: /healthz
+                port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
+      affinity:
+          podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                      matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - workers
+                topologyKey: kubernetes.io/node
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers-region-6
+  labels:
+    app: workers
+    region: "6"
+spec:
+  selector:
+    matchLabels:
+      app: workers
+      region: "6"
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: workers
+        region: "6"
+    spec:
+      containers:
+      - name: worker
+        image: worker:0.0.1
+        env:
+        - name: REGION
+          value: "6"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+            httpGet:
+                path: /healthz
+                port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
+      affinity:
+          podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                      matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - workers
+                topologyKey: kubernetes.io/node
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers-region-7
+  labels:
+    app: workers
+    region: "7"
+spec:
+  selector:
+    matchLabels:
+      app: workers
+      region: "7"
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: workers
+        region: "7"
+    spec:
+      containers:
+      - name: worker
+        image: worker:0.0.1
+        env:
+        - name: REGION
+          value: "7"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+            httpGet:
+                path: /healthz
+                port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
+      affinity:
+          podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                      matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - workers
+                topologyKey: kubernetes.io/node
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers-region-8
+  labels:
+    app: workers
+    region: "8"
+spec:
+  selector:
+    matchLabels:
+      app: workers
+      region: "8"
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: workers
+        region: "8"
+    spec:
+      containers:
+      - name: worker
+        image: worker:0.0.1
+        env:
+        - name: REGION
+          value: "8"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+            httpGet:
+                path: /healthz
+                port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
+      affinity:
+          podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                      matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - workers
+                topologyKey: kubernetes.io/node
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers-region-9
+  labels:
+    app: workers
+    region: "9"
+spec:
+  selector:
+    matchLabels:
+      app: workers
+      region: "9"
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: workers
+        region: "9"
+    spec:
+      containers:
+      - name: worker
+        image: worker:0.0.1
+        env:
+        - name: REGION
+          value: "9"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+            httpGet:
+                path: /healthz
+                port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
+      affinity:
+          podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                      matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - workers
+                topologyKey: kubernetes.io/node
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers-region-10
+  labels:
+    app: workers
+    region: "10"
+spec:
+  selector:
+    matchLabels:
+      app: workers
+      region: "10"
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: workers
+        region: "10"
+    spec:
+      containers:
+      - name: worker
+        image: worker:0.0.1
+        env:
+        - name: REGION
+          value: "10"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+            httpGet:
+                path: /healthz
+                port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
+      affinity:
+          podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                      matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - workers
+                topologyKey: kubernetes.io/node
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers-region-11
+  labels:
+    app: workers
+    region: "11"
+spec:
+  selector:
+    matchLabels:
+      app: workers
+      region: "11"
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: workers
+        region: "11"
+    spec:
+      containers:
+      - name: worker
+        image: worker:0.0.1
+        env:
+        - name: REGION
+          value: "11"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+            httpGet:
+                path: /healthz
+                port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
+      affinity:
+          podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                      matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - workers
+                topologyKey: kubernetes.io/node
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers-region-12
+  labels:
+    app: workers
+    region: "12"
+spec:
+  selector:
+    matchLabels:
+      app: workers
+      region: "12"
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: workers
+        region: "12"
+    spec:
+      containers:
+      - name: worker
+        image: worker:0.0.1
+        env:
+        - name: REGION
+          value: "12"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+            httpGet:
+                path: /healthz
+                port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
+      affinity:
+          podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                      matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - workers
+                topologyKey: kubernetes.io/node
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers-region-13
+  labels:
+    app: workers
+    region: "13"
+spec:
+  selector:
+    matchLabels:
+      app: workers
+      region: "13"
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: workers
+        region: "13"
+    spec:
+      containers:
+      - name: worker
+        image: worker:0.0.1
+        env:
+        - name: REGION
+          value: "13"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+            httpGet:
+                path: /healthz
+                port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
+      affinity:
+          podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                      matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - workers
+                topologyKey: kubernetes.io/node
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers-region-14
+  labels:
+    app: workers
+    region: "14"
+spec:
+  selector:
+    matchLabels:
+      app: workers
+      region: "14"
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: workers
+        region: "14"
+    spec:
+      containers:
+      - name: worker
+        image: worker:0.0.1
+        env:
+        - name: REGION
+          value: "14"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+            httpGet:
+                path: /healthz
+                port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
+      affinity:
+          podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                      matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - workers
+                topologyKey: kubernetes.io/node
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers-region-15
+  labels:
+    app: workers
+    region: "15"
+spec:
+  selector:
+    matchLabels:
+      app: workers
+      region: "15"
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: workers
+        region: "15"
+    spec:
+      containers:
+      - name: worker
+        image: worker:0.0.1
+        env:
+        - name: REGION
+          value: "15"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+            httpGet:
+                path: /healthz
+                port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
+      affinity:
+          podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                      matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - workers
+                topologyKey: kubernetes.io/node
+---
