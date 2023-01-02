@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: workers-region-{{.Region}}
+  namespace: shortest-path
   labels:
     app: workers
     region: "{{.Region}}"

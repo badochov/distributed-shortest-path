@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers-region-{{.Region}}
+  namespace: shortest-path
+  labels:
+    app: workers
+    region: "{{.Region}}"
+spec:
+  selector:
+    matchLabels:
+      app: workers
+      region: "{{.Region}}"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: workers
+        region: "{{.Region}}"
+    spec:
+      containers:
+      - name: worker
+        image: worker:{{.Version}}
+        env:
+        - name: REGION
+          value: "{{.Region}}"
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+            httpGet:
+                path: /healthz
+                port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
+#      affinity:
+#          podAntiAffinity:
+#              requiredDuringSchedulingIgnoredDuringExecution:
+#              - labelSelector:
+#                      matchExpressions:
+#                      - key: app
+#                        operator: In
+#                        values:
+#                          - workers
+#                topologyKey: kubernetes.io/node

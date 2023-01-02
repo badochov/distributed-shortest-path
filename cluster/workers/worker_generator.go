@@ -12,25 +12,36 @@ const deploymentPath = "templates/worker-deployment.template.yaml"
 const servicePath = "templates/worker-service.template.yaml"
 const hpaPath = "templates/worker-hpa.template.yaml"
 
+const deploymentLocalPath = "templates/worker-deployment.template.local.yaml"
+const hpaLocalPath = "templates/worker-hpa.template.local.yaml"
+
 func main() {
-	version := flag.String("version", "0.0.1", "Specifies new version of the image")
+	version := flag.String("version", "0.0.1", "Specifies new version of the image.")
+	local := flag.Bool("local", false, "If local deployments should be generated.")
 	flag.Parse()
 
-	deploymentTemplate := template.Must(template.ParseFiles(deploymentPath))
-	serviceTemplate := template.Must(template.ParseFiles(servicePath))
-	hpaTemplate := template.Must(template.ParseFiles(hpaPath))
+	dp := deploymentPath
+	hp := hpaPath
+	if *local {
+		dp = deploymentLocalPath
+		hp = hpaLocalPath
+	}
 
-	deployments, err := os.Create("workers-deployment.yaml")
+	deploymentTemplate := template.Must(template.ParseFiles(dp))
+	serviceTemplate := template.Must(template.ParseFiles(servicePath))
+	hpaTemplate := template.Must(template.ParseFiles(hp))
+
+	deployments, err := os.Create("generated/workers-deployment.yaml")
 	if err != nil {
 		panic(err)
 	}
 	defer deployments.Close()
-	services, err := os.Create("workers-service.yaml")
+	services, err := os.Create("generated/workers-service.yaml")
 	if err != nil {
 		panic(err)
 	}
 	defer services.Close()
-	hpa, err := os.Create("workers-hpa.yaml")
+	hpa, err := os.Create("generated/workers-hpa.yaml")
 	if err != nil {
 		panic(err)
 	}

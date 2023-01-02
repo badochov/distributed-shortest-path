@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: workers-region-{{.Region}}
+  namespace: shortest-path
   labels:
     app: workers
     region: "{{.Region}}"
@@ -11,4 +12,3 @@ spec:
     region: "{{.Region}}"
   ports:
     - port: 8080
-  type: LoadBalancer

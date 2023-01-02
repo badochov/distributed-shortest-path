@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: manager
+  namespace: shortest-path
+  labels:
+    app: manager
+spec:
+  selector:
+    matchLabels:
+      app: manager
+  template:
+    metadata:
+      labels:
+        app: manager
+    spec:
+      containers:
+      - name: manager
+        image: manager:0.0.1
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+            httpGet:
+                path: /healthz
+                port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3

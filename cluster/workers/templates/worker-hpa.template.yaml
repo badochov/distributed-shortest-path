@@ -2,6 +2,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: workers-region-{{.Region}}
+  namespace: shortest-path
   labels:
     app: workers
 spec:
