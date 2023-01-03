@@ -7,7 +7,7 @@ import (
 )
 
 type Deps struct {
-	Db         *db.DB
+	Db *db.DB
 }
 
 type Executor interface {
@@ -16,15 +16,16 @@ type Executor interface {
 	AddVertices(req api.AddVerticesRequest) (resp api.AddVerticesResponse, code int, err error)
 	RecalculateDS() (resp api.RecalculateDsResponse, code int, err error)
 
+	Healthz() (resp api.RecalculateDsResponse, code int, err error)
+
 	common.Runner
 }
 
 type executor struct {
-	db         *db.DB
+	db *db.DB
 }
 
 func (e *executor) Run() error {
-
 	//TODO implement me
 	panic("implement me")
 }
@@ -49,8 +50,12 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 	panic("implement me")
 }
 
+func (e *executor) Healthz() (resp api.RecalculateDsResponse, code int, err error) {
+	return // Dummy endpoint
+}
+
 func New(deps Deps) Executor {
 	return &executor{
-		db:         deps.Db,
+		db: deps.Db,
 	}
 }

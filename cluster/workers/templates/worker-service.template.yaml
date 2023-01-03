@@ -12,3 +12,4 @@ spec:
     region: "{{.Region}}"
   ports:
     - port: 8080
+      name: worker-server

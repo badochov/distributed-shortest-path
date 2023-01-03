@@ -18,10 +18,6 @@ import (
 const workerServicePort int = 8080
 const linkServicePort int = 4567
 
-func newListener(port int) (net.Listener, error) {
-	return net.Listen("tcp", fmt.Sprintf(":%d", port))
-}
-
 func main() {
 	orm, err := db.ConnectToDefault()
 	if err != nil {
@@ -34,7 +30,7 @@ func main() {
 	}
 	clientset := kubernetes.NewForConfigOrDie(config)
 	discovererDeps := discoverer.Deps{Client: clientset}
-	d := discoverer.New(discovererDeps) // TODO
+	d := discoverer.New(discovererDeps)
 
 	workerDeps := worker.Deps{
 		Db:         orm,
@@ -53,7 +49,7 @@ func main() {
 	}
 	sW := service_server.New(serviceDeps)
 
-	lL, err := newListener(linkServicePort)
+	lL, err := net.Listen("tcp", fmt.Sprintf(":%d", linkServicePort))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

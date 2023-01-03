@@ -4,11 +4,10 @@ import (
 	"context"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
+	"strconv"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// TODO adjust to new architecture with multiple services.
 
 type WorkerInstanceStatus struct {
 	Status v1.PodPhase
@@ -21,13 +20,17 @@ type Deps struct {
 }
 
 type WorkerInstance struct {
-	Ip   string
-	Port int32
+	Ip string
+}
+
+type RegionData struct {
+	RegionId  int
+	Instances []WorkerInstance
 }
 
 type Discoverer interface {
 	// InstancesChan returns channel streaming data regarding updates of set of instances.
-	InstancesChan() <-chan []WorkerInstance
+	InstancesChan() <-chan RegionData
 	// InstanceStatuses returns channel streaming data regarding updates of statuses on instances.
 	// Useful for checking health of the worker.
 	InstanceStatuses() <-chan WorkerInstanceStatus
@@ -37,7 +40,7 @@ type Discoverer interface {
 
 type discoverer struct {
 	client   *kubernetes.Clientset
-	ch       <-chan []WorkerInstance
+	ch       <-chan RegionData
 	statuses <-chan WorkerInstanceStatus
 }
 
@@ -45,52 +48,48 @@ func (d *discoverer) InstanceStatuses() <-chan WorkerInstanceStatus {
 	return d.statuses
 }
 
-func (d *discoverer) InstancesChan() <-chan []WorkerInstance {
+func (d *discoverer) InstancesChan() <-chan RegionData {
 	return d.ch
 }
 
 func (d *discoverer) Run(ctx context.Context) error {
-	endpointWatcher, err := d.client.CoreV1().Endpoints("default").Watch(ctx, metav1.ListOptions{
-		LabelSelector: "app = worker-mesh",
+	endpointWatcher, err := d.client.CoreV1().Endpoints("shortest-path").Watch(ctx, metav1.ListOptions{
+		LabelSelector: "app = workers",
 	})
 	if err != nil {
 		return err
 	}
-	podWatcher, err := d.client.CoreV1().Pods("default").Watch(ctx, metav1.ListOptions{
-		LabelSelector: "app = worker",
+	podWatcher, err := d.client.CoreV1().Pods("shortest-path").Watch(ctx, metav1.ListOptions{
+		LabelSelector: "app = workers",
 	})
 	if err != nil {
 		return err
 	}
 
 	// Endpoints
-	ch := make(chan []WorkerInstance)
+	ch := make(chan RegionData)
 	d.ch = ch
 
 	go func() {
 		for ev := range endpointWatcher.ResultChan() {
 			endpoints := ev.Object.(*v1.Endpoints)
 
-			var instances []WorkerInstance
+			var res RegionData
+
+			regStr := endpoints.Labels["region"]
+			res.RegionId, err = strconv.Atoi(regStr)
+			if err != nil {
+				panic(err)
+			}
+
 			for _, subset := range endpoints.Subsets {
-				var port int32
-				for _, p := range subset.Ports {
-					if p.Name == "worker-rpc" {
-						port = p.Port
-						break
-					}
-				}
-				if port == 0 {
-					panic("Port cannot be 0")
-				}
 				for _, address := range subset.Addresses {
-					instances = append(instances, WorkerInstance{
-						Ip:   address.IP,
-						Port: port,
+					res.Instances = append(res.Instances, WorkerInstance{
+						Ip: address.IP,
 					})
 				}
 			}
-			ch <- instances
+			ch <- res
 		}
 	}()
 

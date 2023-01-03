@@ -91,6 +91,15 @@ func (h *handler) AddEdges(c *gin.Context) {
 	c.JSON(code, resp)
 }
 
+func (h *handler) Healthz(c *gin.Context) {
+	resp, code, err := h.executor.Healthz()
+	if err != nil {
+		c.AbortWithError(code, err)
+		return
+	}
+	c.JSON(code, resp)
+}
+
 func New(deps Deps) Server {
 	router := gin.Default()
 
@@ -98,12 +107,15 @@ func New(deps Deps) Server {
 		executor: deps.Executor,
 	}
 
-	router.POST("/shortest_path", h.ShortestPath)
+	router.POST(api.ShortestPathUrl, h.ShortestPath)
 
-	router.GET("/recalculate_ds", h.RecalculateDs)
+	router.GET(api.RecalculateDsURL, h.RecalculateDs)
 
-	router.POST("/add_vertices", h.AddVertices)
-	router.POST("/add_edges", h.AddEdges)
+	router.POST(api.AddVerticesUrl, h.AddVertices)
+	router.POST(api.AddEdgesUrl, h.AddEdges)
+
+	router.GET(api.HealthzUrl, h.Healthz)
+
 
 	return &server{
 		engine:  router,
