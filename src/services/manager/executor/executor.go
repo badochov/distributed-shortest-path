@@ -16,6 +16,8 @@ type Executor interface {
 	AddVertices(req api.AddVerticesRequest) (resp api.AddVerticesResponse, code int, err error)
 	RecalculateDS() (resp api.RecalculateDsResponse, code int, err error)
 
+	GetGeneration() (resp api.GetGenerationResponse, code int, err error)
+
 	Healthz() (resp api.RecalculateDsResponse, code int, err error)
 
 	common.Runner
@@ -23,6 +25,11 @@ type Executor interface {
 
 type executor struct {
 	db *db.DB
+}
+
+func (e *executor) GetGeneration() (resp api.GetGenerationResponse, code int, err error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (e *executor) Run() error {

@@ -100,6 +100,15 @@ func (h *handler) Healthz(c *gin.Context) {
 	c.JSON(code, resp)
 }
 
+func (h *handler) GetGeneration(c *gin.Context) {
+	resp, code, err := h.executor.GetGeneration()
+	if err != nil {
+		c.AbortWithError(code, err)
+		return
+	}
+	c.JSON(code, resp)
+}
+
 func New(deps Deps) Server {
 	router := gin.Default()
 
@@ -113,6 +122,8 @@ func New(deps Deps) Server {
 
 	router.POST(api.AddVerticesUrl, h.AddVertices)
 	router.POST(api.AddEdgesUrl, h.AddEdges)
+
+	router.GET(api.GetGenerationUrl, h.GetGeneration)
 
 	router.GET(api.HealthzUrl, h.Healthz)
 
