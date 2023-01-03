@@ -17,6 +17,9 @@ spec:
       containers:
       - name: manager
         image: shortest-path/manager:0.0.1
+        envFrom:
+          - configMapRef:
+              name: postgres-config
         ports:
         - containerPort: 8080
         livenessProbe:

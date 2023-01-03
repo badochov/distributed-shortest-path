@@ -12,8 +12,8 @@ const deploymentPath = "templates/worker-deployment.template.yaml"
 const servicePath = "templates/worker-service.template.yaml"
 const hpaPath = "templates/worker-hpa.template.yaml"
 
-const deploymentLocalPath = "templates/worker-deployment.template.local.yaml"
-const hpaLocalPath = "templates/worker-hpa.template.local.yaml"
+const deploymentLocalPath = "templates/worker-deployment.local.template.yaml"
+const hpaLocalPath = "templates/worker-hpa.local.template.yaml"
 
 func main() {
 	version := flag.String("version", "0.0.1", "Specifies new version of the image.")
@@ -53,13 +53,13 @@ func main() {
 			Version string
 		}{i, *version}
 
-		if err := deploymentTemplate.ExecuteTemplate(deployments, filepath.Base(deploymentPath), data); err != nil {
+		if err := deploymentTemplate.ExecuteTemplate(deployments, filepath.Base(dp), data); err != nil {
 			panic(err)
 		}
 		if err := serviceTemplate.ExecuteTemplate(services, filepath.Base(servicePath), data); err != nil {
 			panic(err)
 		}
-		if err := hpaTemplate.ExecuteTemplate(hpa, filepath.Base(hpaPath), data); err != nil {
+		if err := hpaTemplate.ExecuteTemplate(hpa, filepath.Base(hp), data); err != nil {
 			panic(err)
 		}
 

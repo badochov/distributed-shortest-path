@@ -8,6 +8,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// TODO adjust to new architecture with multiple services.
+
 type WorkerInstanceStatus struct {
 	Status v1.PodPhase
 	Ip     string

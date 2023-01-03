@@ -1,16 +1,13 @@
 package executor
 
 import (
-	"context"
+	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/common"
-	"github.com/badochov/distributed-shortest-path/src/services/manager/discoverer"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/server/api"
-	"gorm.io/gorm"
 )
 
 type Deps struct {
-	Discoverer discoverer.Discoverer
-	Db         *gorm.DB
+	Db         *db.DB
 }
 
 type Executor interface {
@@ -23,14 +20,10 @@ type Executor interface {
 }
 
 type executor struct {
-	discoverer discoverer.Discoverer
-	db         *gorm.DB
+	db         *db.DB
 }
 
 func (e *executor) Run() error {
-	if err := e.discoverer.Run(context.TODO()); err != nil {
-		return err
-	}
 
 	//TODO implement me
 	panic("implement me")
@@ -58,7 +51,6 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 
 func New(deps Deps) Executor {
 	return &executor{
-		discoverer: deps.Discoverer,
 		db:         deps.Db,
 	}
 }

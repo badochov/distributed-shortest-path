@@ -1,50 +1,94 @@
 package service_server
 
 import (
-	"context"
-	"github.com/badochov/distributed-shortest-path/src/libs/rpc"
+	"fmt"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/common"
-	"github.com/badochov/distributed-shortest-path/src/services/worker/worker"
-	"google.golang.org/grpc"
-	"log"
-	"net"
+	"github.com/badochov/distributed-shortest-path/src/services/worker/service_server/api"
+	"github.com/badochov/distributed-shortest-path/src/services/worker/service_server/executor"
+	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 type Deps struct {
-	Listener net.Listener
-	Worker   worker.Worker
+	Executor executor.Executor
+	Port     int
 }
 
-type workerService struct {
-	rpc.UnimplementedWorkerServer
-	worker worker.Worker
-}
-
-func (s *workerService) AssignSegment(ctx context.Context, segment *rpc.Segment) (*rpc.Ack, error) {
-	if err := s.worker.AssignSegment(segment.SegmentId); err != nil {
-		return nil, err
-	}
-	return &rpc.Ack{}, nil
-}
-
-type serv struct {
-	server   *grpc.Server
-	listener net.Listener
-}
-
-func (s *serv) Run() error {
-	return s.server.Serve(s.listener)
-}
-
-type Service interface {
+type Server interface {
 	common.Runner
 }
 
-func New(deps Deps) Service {
-	s := grpc.NewServer()
+type server struct {
+	engine  *gin.Engine
+	handler handler
+	port    int
+}
 
-	rpc.RegisterWorkerServer(s, &workerService{worker: deps.Worker})
-	log.Printf("server listening at %v", deps.Listener.Addr())
+func (s *server) Run() error {
+	if err := s.handler.Run(); err != nil {
+		return err
+	}
 
-	return &serv{server: s, listener: deps.Listener}
+	return s.engine.Run(fmt.Sprintf(":%d", s.port))
+}
+
+type handler struct {
+	executor executor.Executor
+}
+
+func (h *handler) Run() error {
+	return h.executor.Run()
+}
+
+func (h *handler) ShortestPath(c *gin.Context) {
+	var req api.ShortestPathRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.AbortWithError(http.StatusBadRequest, err)
+		return
+	}
+
+	resp, code, err := h.executor.ShortestPath(req)
+	if err != nil {
+		c.AbortWithError(code, err)
+		return
+	}
+	c.JSON(code, resp)
+}
+
+func (h *handler) CalculateArcFlags(c *gin.Context) {
+	resp, code, err := h.executor.CalculateArcFlags()
+	if err != nil {
+		c.AbortWithError(code, err)
+		return
+	}
+	c.JSON(code, resp)
+}
+
+func (h *handler) Healthz(c *gin.Context) {
+	resp, code, err := h.executor.Healthz()
+	if err != nil {
+		c.AbortWithError(code, err)
+		return
+	}
+	c.JSON(code, resp)
+}
+
+func New(deps Deps) Server {
+	router := gin.Default()
+
+	h := handler{
+		executor: deps.Executor,
+	}
+
+	router.POST(api.ShortestPathUrl, h.ShortestPath)
+
+	router.GET(api.CalculateArcFlagsUrl, h.CalculateArcFlags)
+
+	router.GET(api.HealthzUrl, h.Healthz)
+
+	return &server{
+		engine:  router,
+		handler: h,
+		port:    deps.Port,
+	}
 }

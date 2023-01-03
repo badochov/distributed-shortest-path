@@ -21,11 +21,17 @@ spec:
       containers:
       - name: worker
         image: shortest-path/worker:{{.Version}}
+        envFrom:
+          - configMapRef:
+              name: postgres-config
         env:
         - name: REGION
           value: "{{.Region}}"
         ports:
         - containerPort: 8080
+          name: worker-server
+        - containerPort: 4567
+          name: link-server
         livenessProbe:
             httpGet:
                 path: /healthz

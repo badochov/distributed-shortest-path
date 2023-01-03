@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 
 kubectl apply -f shortest-path-namespace.yaml
+kubectl apply -f postgres-config.yaml
 
 (
   cd postgres || exit 1
@@ -14,6 +15,6 @@ kubectl apply -f shortest-path-namespace.yaml
 
 (
   cd workers || exit 1
-  ./generate --local=true
+  ./generate.sh --local=true || exit 1
   ./deploy.sh
 )

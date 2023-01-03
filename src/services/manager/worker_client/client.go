@@ -1,32 +1,61 @@
 package worker_client
 
 import (
-	"context"
-	"github.com/badochov/distributed-shortest-path/src/libs/rpc"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"io"
+	"encoding/json"
+	"fmt"
+	"github.com/badochov/distributed-shortest-path/src/services/worker/service_server/api"
+	"net/http"
 )
 
+type ShortestPathArgs = api.ShortestPathRequest
+type ShortestPathResult = api.ShortestPathResponse
+
 type WorkerClient interface {
-	rpc.WorkerClient
-	io.Closer
+	CalculateArcFlags() error
+	ShortestPath(args ShortestPathArgs) (ShortestPathResult, error)
 }
 
 type client struct {
-	rpc.WorkerClient
-	conn *grpc.ClientConn
+	client *http.Client
 }
 
-func (c client) Close() error {
-	return c.conn.Close()
-}
-
-// New open new grpc connection to WorkerService. Must be closed after use.
-func New(ctx context.Context, addr string) (WorkerClient, error) {
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+func (c *client) CalculateArcFlags() error {
+	r, err := c.client.Get(api.CalculateArcFlagsUrl)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("error performing CalculateArcFlags request, %w", err)
 	}
-	return client{WorkerClient: rpc.NewWorkerClient(conn), conn: conn}, nil
+	if err := r.Body.Close(); err != nil {
+		return fmt.Errorf("error closing CalculateArcFlags request body, %w", err)
+	}
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("worker server responded to CalculateArcFlags with code=%d, status %s", r.StatusCode, r.Status)
+	}
+	return nil
+}
+
+func (c *client) ShortestPath(args ShortestPathArgs) (res ShortestPathResult, err error) {
+	r, err := c.client.Get(api.CalculateArcFlagsUrl)
+	if err != nil {
+		return ShortestPathResult{}, fmt.Errorf("error performing CalculateArcFlags request, %w", err)
+	}
+	defer func() {
+		if errClose := r.Body.Close(); errClose != nil {
+			err = fmt.Errorf("error closing CalculateArcFlags request body, %w", errClose)
+		}
+	}()
+
+	if r.StatusCode != http.StatusOK {
+		return res, fmt.Errorf("worker server responded to CalculateArcFlags with code=%d, status %s", r.StatusCode, r.Status)
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&res); err != nil {
+		return ShortestPathResult{}, fmt.Errorf("error decoding CalculateArcFlags request body, %w", err)
+	}
+
+	return
+}
+
+// New sets up client to a worker service.
+func New(cl *http.Client) WorkerClient {
+	return &client{client: cl}
 }
