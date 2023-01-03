@@ -75,6 +75,7 @@ func (d *discoverer) Run(ctx context.Context) error {
 			endpoints := ev.Object.(*v1.Endpoints)
 
 			var res RegionData
+			var err error
 
 			regStr := endpoints.Labels["region"]
 			res.RegionId, err = strconv.Atoi(regStr)

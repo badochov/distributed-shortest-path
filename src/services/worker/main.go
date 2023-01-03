@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/rest"
 	"log"
 	"net"
+	"sync"
 )
 
 const workerServicePort int = 8080
@@ -62,14 +63,22 @@ func main() {
 	if err := wrkr.Run(context.Background()); err != nil {
 		log.Fatalf("error running worker, %s", err)
 	}
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
 	go func() {
 		if err := sW.Run(); err != nil {
 			log.Fatalf("error running worker service server, %s", err)
 		}
+		wg.Done()
 	}()
 	go func() {
 		if err := sL.Run(); err != nil {
 			log.Fatalf("error running link service server, %s", err)
 		}
+		wg.Done()
 	}()
+
+	wg.Wait()
 }
