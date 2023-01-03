@@ -17,6 +17,11 @@ spec:
       containers:
       - name: manager
         image: shortest-path/manager:0.0.1
+        env:
+          - name: NUM_REGIONS
+            value: 16
+          - name: REGION_URL_TEMPLATE
+            value: workers-region-%d
         envFrom:
           - configMapRef:
               name: postgres-config

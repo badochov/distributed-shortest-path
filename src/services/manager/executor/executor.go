@@ -1,13 +1,20 @@
 package executor
 
 import (
+	"fmt"
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/common"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/server/api"
+	"github.com/badochov/distributed-shortest-path/src/services/manager/worker"
+	"net/http"
 )
 
+type regionId int
+
 type Deps struct {
-	Db *db.DB
+	NumRegions        int
+	RegionUrlTemplate string
+	Db                *db.DB
 }
 
 type Executor interface {
@@ -24,7 +31,8 @@ type Executor interface {
 }
 
 type executor struct {
-	db *db.DB
+	clients map[regionId]worker.Client
+	db      *db.DB
 }
 
 func (e *executor) GetGeneration() (resp api.GetGenerationResponse, code int, err error) {
@@ -33,8 +41,7 @@ func (e *executor) GetGeneration() (resp api.GetGenerationResponse, code int, er
 }
 
 func (e *executor) Run() error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (e *executor) ShortestPath(req api.ShortestPathRequest) (resp api.ShortestPathResponse, code int, err error) {
@@ -61,8 +68,35 @@ func (e *executor) Healthz() (resp api.RecalculateDsResponse, code int, err erro
 	return // Dummy endpoint
 }
 
+type baseUrlRoundTripper struct {
+	host string
+
+	roundTripper http.RoundTripper
+}
+
+func (b baseUrlRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
+	request.Host = b.host
+
+	return b.roundTripper.RoundTrip(request)
+}
+
 func New(deps Deps) Executor {
-	return &executor{
-		db: deps.Db,
+	ex := &executor{
+		db:      deps.Db,
+		clients: make(map[regionId]worker.Client, deps.NumRegions),
 	}
+
+	for i := 0; i < deps.NumRegions; i++ {
+		url := fmt.Sprintf(deps.RegionUrlTemplate, i)
+		httpClient := &http.Client{
+			Transport: baseUrlRoundTripper{
+				host:         url,
+				roundTripper: http.DefaultTransport, // TODO customize timeouts
+			},
+		}
+
+		ex.clients[regionId(i)] = worker.NewClient(httpClient)
+	}
+
+	return ex
 }

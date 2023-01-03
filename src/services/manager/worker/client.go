@@ -1,4 +1,4 @@
-package worker_client
+package worker
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 type ShortestPathArgs = api.ShortestPathRequest
 type ShortestPathResult = api.ShortestPathResponse
 
-type WorkerClient interface {
+type Client interface {
 	CalculateArcFlags() error
 	ShortestPath(args ShortestPathArgs) (ShortestPathResult, error)
 }
@@ -55,7 +55,7 @@ func (c *client) ShortestPath(args ShortestPathArgs) (res ShortestPathResult, er
 	return
 }
 
-// New sets up client to a worker service.
-func New(cl *http.Client) WorkerClient {
+// NewClient sets up client to a worker service.
+func NewClient(cl *http.Client) Client {
 	return &client{client: cl}
 }

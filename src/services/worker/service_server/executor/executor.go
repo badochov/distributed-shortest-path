@@ -25,8 +25,7 @@ type executor struct {
 }
 
 func (e *executor) Run() error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (e *executor) ShortestPath(req api.ShortestPathRequest) (resp api.ShortestPathResponse, code int, err error) {
