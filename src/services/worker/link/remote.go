@@ -26,6 +26,7 @@ type remoteLink struct {
 	conn   *grpc.ClientConn
 }
 
+// newRemoteLink
 func newRemoteLink(ctx context.Context, addr string) (*remoteLink, error) {
 	conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {

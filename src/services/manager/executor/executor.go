@@ -15,6 +15,7 @@ type Deps struct {
 	NumRegions        int
 	RegionUrlTemplate string
 	Db                *db.DB
+	Port              int
 }
 
 type Executor interface {
@@ -87,7 +88,7 @@ func New(deps Deps) Executor {
 	}
 
 	for i := 0; i < deps.NumRegions; i++ {
-		url := fmt.Sprintf(deps.RegionUrlTemplate, i)
+		url := fmt.Sprintf(deps.RegionUrlTemplate+":%d", i, deps.Port)
 		httpClient := &http.Client{
 			Transport: baseUrlRoundTripper{
 				host:         url,

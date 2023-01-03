@@ -16,7 +16,9 @@ type WorkerInstanceStatus struct {
 }
 
 type Deps struct {
-	Client *kubernetes.Clientset
+	Client        *kubernetes.Clientset
+	Namespace     string
+	LabelSelector string
 }
 
 type WorkerInstance struct {
@@ -39,9 +41,11 @@ type Discoverer interface {
 }
 
 type discoverer struct {
-	client   *kubernetes.Clientset
-	ch       <-chan RegionData
-	statuses <-chan WorkerInstanceStatus
+	client        *kubernetes.Clientset
+	ch            <-chan RegionData
+	statuses      <-chan WorkerInstanceStatus
+	labelSelector string
+	namespace     string
 }
 
 func (d *discoverer) InstanceStatuses() <-chan WorkerInstanceStatus {
@@ -53,18 +57,19 @@ func (d *discoverer) InstancesChan() <-chan RegionData {
 }
 
 func (d *discoverer) Run(ctx context.Context) error {
-	endpointWatcher, err := d.client.CoreV1().Endpoints("shortest-path").Watch(ctx, metav1.ListOptions{
-		LabelSelector: "app = workers",
+	endpointWatcher, err := d.client.CoreV1().Endpoints(d.namespace).Watch(ctx, metav1.ListOptions{
+		LabelSelector: d.labelSelector,
 	})
 	if err != nil {
 		return err
 	}
-	podWatcher, err := d.client.CoreV1().Pods("shortest-path").Watch(ctx, metav1.ListOptions{
-		LabelSelector: "app = workers",
+	podWatcher, err := d.client.CoreV1().Pods(d.namespace).Watch(ctx, metav1.ListOptions{
+		LabelSelector: d.labelSelector,
 	})
 	if err != nil {
 		return err
 	}
+	//d.client.AppsV1().Deployments().ApplyScale()
 
 	// Endpoints
 	ch := make(chan RegionData)
@@ -112,5 +117,9 @@ func (d *discoverer) Run(ctx context.Context) error {
 }
 
 func New(deps Deps) Discoverer {
-	return &discoverer{client: deps.Client}
+	return &discoverer{
+		client:        deps.Client,
+		namespace:     deps.Namespace,
+		labelSelector: deps.LabelSelector,
+	}
 }

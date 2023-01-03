@@ -13,13 +13,23 @@ import (
 	"k8s.io/client-go/rest"
 	"log"
 	"net"
+	"os"
+	"strconv"
 	"sync"
 )
 
-const workerServicePort int = 8080
-const linkServicePort int = 4567
+func getPortFromEnv(envName string) int {
+	portStr := os.Getenv(envName)
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		log.Fatalf("Error parsing port from %s, %s", envName, err)
+	}
+	return port
+}
 
 func main() {
+	log.Println(os.Environ())
+
 	orm, err := db.ConnectToDefault()
 	if err != nil {
 		log.Fatal("Error opening db,", err)
@@ -30,7 +40,11 @@ func main() {
 		log.Fatal(err)
 	}
 	clientset := kubernetes.NewForConfigOrDie(config)
-	discovererDeps := discoverer.Deps{Client: clientset}
+	discovererDeps := discoverer.Deps{
+		Client:        clientset,
+		Namespace:     os.Getenv("NAMESPACE"),
+		LabelSelector: os.Getenv("WORKER_SERVICE_LABEL_SELECTOR"),
+	}
 	d := discoverer.New(discovererDeps)
 
 	workerDeps := worker.Deps{
@@ -45,12 +59,12 @@ func main() {
 	exec := executor.New(execDeps)
 
 	serviceDeps := service_server.Deps{
-		Port:     workerServicePort,
+		Port:     getPortFromEnv("WORKER_SERVER_PORT"),
 		Executor: exec,
 	}
 	sW := service_server.New(serviceDeps)
 
-	lL, err := net.Listen("tcp", fmt.Sprintf(":%d", linkServicePort))
+	lL, err := net.Listen("tcp", fmt.Sprintf(":%d", getPortFromEnv("LINK_SERVER_PORT")))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

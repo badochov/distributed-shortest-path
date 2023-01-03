@@ -23,7 +23,7 @@ Project calculating shortest path in a distributed graph.
      ```
 4. ```bash
    cd cluster
-   ./deploy.sh
+   ./deploy.sh --local
    cd ..
    ```
 
@@ -34,7 +34,7 @@ Project calculating shortest path in a distributed graph.
 ```
 #### Workers
 ```bash
-./update_worker.sh <VERSION>
+./update_workers.sh <VERSION>
 ```
 
 

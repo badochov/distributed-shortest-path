@@ -20,25 +20,38 @@ spec:
     spec:
       serviceAccountName: endpoint-observer
       containers:
-      - name: worker
-        image: shortest-path/worker:{{.Version}}
-        envFrom:
-          - configMapRef:
-              name: postgres-config
-        env:
-        - name: REGION
-          value: "{{.Region}}"
-        ports:
-        - containerPort: 8080
-          name: worker-server
-        - containerPort: 4567
-          name: link-server
-        livenessProbe:
+        - name: worker
+#          resources:
+#            requests:
+#              memory: "512Mi"
+#              cpu: "0.5"
+#            limits:
+#              memory: "1Gi"
+#              cpu: "1"
+          image: shortest-path/worker:{{.Version}}
+          envFrom:
+            - configMapRef:
+                name: postgres-config
+            - configMapRef:
+                name: shortest-path-commons-config
+          env:
+            - name: REGION
+              value: "{{.Region}}"
+            - name: LINK_SERVER_PORT
+              value: "4567"
+            - name: WORKER_SERVICE_LABEL_SELECTOR
+              value: "app = workers"
+          ports:
+            - containerPort: 8080
+              name: worker-server
+            - containerPort: 4567
+              name: link-server
+          livenessProbe:
             httpGet:
-                path: /healthz
-                port: 8080
-            initialDelaySeconds: 3
-            periodSeconds: 3
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 1
+            periodSeconds: 1
       affinity:
           podAntiAffinity:
               requiredDuringSchedulingIgnoredDuringExecution:

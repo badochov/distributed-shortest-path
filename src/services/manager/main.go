@@ -1,27 +1,26 @@
 package main
 
 import (
-	"fmt"
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/executor"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/server"
 	"log"
-	"math/bits"
 	"os"
 	"strconv"
 )
 
-func validateNumRegions(numRegions int) error {
-	if numRegions <= 0 {
-		return fmt.Errorf("number of regions must be positive")
+func getPortFromEnv(envName string) int {
+	portStr := os.Getenv(envName)
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		log.Fatalf("Error parsing port from %s, %s", envName, err)
 	}
-	if bits.OnesCount(uint(numRegions)) != 1 {
-		return fmt.Errorf("number of regions must be a power of two")
-	}
-	return nil
+	return port
 }
 
 func main() {
+	log.Println(os.Environ())
+
 	orm, err := db.ConnectToDefault()
 	if err != nil {
 		log.Fatal("Error opening db,", err)
@@ -32,18 +31,18 @@ func main() {
 	if err != nil {
 		log.Fatal("Error parsing number of regions,", err)
 	}
-	if err := validateNumRegions(numRegions); err != nil {
-		log.Fatal("Error validating number of regions,", err)
-	}
+
 	executorDeps := executor.Deps{
 		NumRegions:        numRegions,
 		RegionUrlTemplate: os.Getenv("REGION_URL_TEMPLATE"),
+		Port:              getPortFromEnv("WORKER_SERVER_PORT"),
 		Db:                orm,
 	}
 	exctr := executor.New(executorDeps)
 
 	serverDeps := server.Deps{
 		Executor: exctr,
+		Port:     getPortFromEnv("PORT"),
 	}
 	srv := server.New(serverDeps)
 

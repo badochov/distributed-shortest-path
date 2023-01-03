@@ -19,12 +19,16 @@ spec:
         image: shortest-path/manager:0.0.1
         env:
           - name: NUM_REGIONS
-            value: 16
+            value: "16"
           - name: REGION_URL_TEMPLATE
             value: workers-region-%d
+          - name: PORT
+            value: "8080"
         envFrom:
           - configMapRef:
               name: postgres-config
+          - configMapRef:
+              name: shortest-path-commons-config
         ports:
         - containerPort: 8080
         livenessProbe:

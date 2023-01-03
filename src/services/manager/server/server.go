@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/common"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/executor"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/server/api"
@@ -10,6 +11,7 @@ import (
 
 type Deps struct {
 	Executor executor.Executor
+	Port     int
 }
 
 type Server interface {
@@ -19,6 +21,7 @@ type Server interface {
 type server struct {
 	engine  *gin.Engine
 	handler handler
+	port    int
 }
 
 func (s *server) Run() error {
@@ -26,7 +29,7 @@ func (s *server) Run() error {
 		return err
 	}
 
-	return s.engine.Run()
+	return s.engine.Run(fmt.Sprintf(":%d", s.port))
 }
 
 type handler struct {
@@ -127,9 +130,9 @@ func New(deps Deps) Server {
 
 	router.GET(api.HealthzUrl, h.Healthz)
 
-
 	return &server{
 		engine:  router,
 		handler: h,
+		port:    deps.Port,
 	}
 }
