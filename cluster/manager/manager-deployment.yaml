@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: manager
-        image: manager:0.0.1
+        image: shortest-path/manager:0.0.1
         ports:
         - containerPort: 8080
         livenessProbe:

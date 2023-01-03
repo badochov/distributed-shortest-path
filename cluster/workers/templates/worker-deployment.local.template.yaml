@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: worker
-        image: worker:{{.Version}}
+        image: shortest-path/worker:{{.Version}}
         env:
         - name: REGION
           value: "{{.Region}}"
