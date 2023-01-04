@@ -6,16 +6,18 @@ import (
 	"github.com/badochov/distributed-shortest-path/src/services/manager/common"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/server/api"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/worker"
+	"github.com/badochov/distributed-shortest-path/src/services/manager/worker/service_manager"
 	"net/http"
 )
 
 type regionId int
 
 type Deps struct {
-	NumRegions        int
-	RegionUrlTemplate string
-	Db                *db.DB
-	Port              int
+	NumRegions          int
+	RegionUrlTemplate   string
+	Db                  *db.DB
+	Port                int
+	WorkerServerManager service_manager.WorkerServiceManager
 }
 
 type Executor interface {
@@ -32,8 +34,9 @@ type Executor interface {
 }
 
 type executor struct {
-	clients map[regionId]worker.Client
-	db      *db.DB
+	clients             map[regionId]worker.Client
+	db                  *db.DB
+	workerServerManager service_manager.WorkerServiceManager
 }
 
 func (e *executor) GetGeneration() (resp api.GetGenerationResponse, code int, err error) {
@@ -83,8 +86,9 @@ func (b baseUrlRoundTripper) RoundTrip(request *http.Request) (*http.Response, e
 
 func New(deps Deps) Executor {
 	ex := &executor{
-		db:      deps.Db,
-		clients: make(map[regionId]worker.Client, deps.NumRegions),
+		db:                  deps.Db,
+		clients:             make(map[regionId]worker.Client, deps.NumRegions),
+		workerServerManager: deps.WorkerServerManager,
 	}
 
 	for i := 0; i < deps.NumRegions; i++ {

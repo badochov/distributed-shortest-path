@@ -28,8 +28,6 @@ func getPortFromEnv(envName string) int {
 }
 
 func main() {
-	log.Println(os.Environ())
-
 	orm, err := db.ConnectToDefault()
 	if err != nil {
 		log.Fatal("Error opening db,", err)

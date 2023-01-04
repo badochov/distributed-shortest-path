@@ -18,7 +18,7 @@ spec:
         app: workers
         region: "{{.Region}}"
     spec:
-      serviceAccountName: endpoint-observer
+      serviceAccountName: worker
       containers:
         - name: worker
 #          resources:

@@ -7,7 +7,7 @@ fi
 
 TAG=$1
 
-docker build -f Dockerfile -t "shortest-path/manager:$TAG" ../..
+docker build -f Dockerfile -t "shortest-path/manager:$TAG" ../.. || exit 1
 
 # Only on local and if using kind
 kind load docker-image "shortest-path/manager:$TAG"

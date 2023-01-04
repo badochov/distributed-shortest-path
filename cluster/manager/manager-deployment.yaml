@@ -14,6 +14,7 @@ spec:
       labels:
         app: manager
     spec:
+      serviceAccountName: workers-manager
       containers:
       - name: manager
         image: shortest-path/manager:0.0.1
@@ -21,6 +22,8 @@ spec:
           - name: NUM_REGIONS
             value: "16"
           - name: REGION_URL_TEMPLATE
+            value: workers-region-%d
+          - name: REGION_DEPLOYMENT_TEMPLATE
             value: workers-region-%d
           - name: PORT
             value: "8080"

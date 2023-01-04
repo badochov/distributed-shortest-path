@@ -7,6 +7,7 @@ fi
 kubectl apply -f shortest-path-namespace.yaml
 kubectl apply -f shortest-path-commons-config.yaml
 kubectl apply -f postgres-config.yaml
+kubectl apply -f workers-manager-role.yaml
 
 if [ "$IS_LOCAL" = true ]; then
   kubectl apply -f metrics-server.local.yaml
