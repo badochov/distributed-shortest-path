@@ -1,3 +1,3 @@
-package api
+package worker_api
 
 type VertexId string

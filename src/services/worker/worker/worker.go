@@ -3,8 +3,8 @@ package worker
 import (
 	"context"
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
+	api "github.com/badochov/distributed-shortest-path/src/libs/worker_api"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/discoverer"
-	"github.com/badochov/distributed-shortest-path/src/services/worker/service_server/api"
 )
 
 type Deps struct {
@@ -20,7 +20,7 @@ type Worker interface {
 	// Server
 	CalculateArcFlags() error
 	ShortestPath(args ShortestPathArgs) (ShortestPathResult, error)
-	
+
 	// Link
 	Add(a int32, b int32) (int32, error) // Example
 
@@ -28,7 +28,7 @@ type Worker interface {
 }
 
 type worker struct {
-	db *db.DB
+	db         *db.DB
 	discoverer discoverer.Discoverer
 }
 
@@ -57,7 +57,7 @@ func (w *worker) AssignSegment(id int32) error {
 
 func New(deps Deps) Worker {
 	return &worker{
-		db: deps.Db,
+		db:         deps.Db,
 		discoverer: deps.Discoverer,
 	}
 }

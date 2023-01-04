@@ -1,4 +1,4 @@
-package api
+package worker_api
 
 const HealthzUrl = "/healthz"
 

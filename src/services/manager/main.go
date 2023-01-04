@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/executor"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/server"
@@ -22,6 +23,7 @@ func getPortFromEnv(envName string) int {
 }
 
 func main() {
+	fmt.Print("xD")
 	orm, err := db.ConnectToDefault()
 	if err != nil {
 		log.Fatal("Error opening db,", err)

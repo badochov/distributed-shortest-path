@@ -1,8 +1,8 @@
 package executor
 
 import (
+	api "github.com/badochov/distributed-shortest-path/src/libs/worker_api"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/common"
-	"github.com/badochov/distributed-shortest-path/src/services/worker/service_server/api"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/worker"
 	"net/http"
 )
