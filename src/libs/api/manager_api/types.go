@@ -1,10 +1,11 @@
 package manager_api
 
-type VertexId string
+type VertexId = int64
 
 type Vertex struct {
-	Id      VertexId `json:"id"`
-	GeoData any      `json:"geo_data"` // TODO init with real type
+	Id        VertexId `json:"id"`
+	Latitude  float64  `json:"latitude"`
+	Longitude float64  `json:"longitude"`
 }
 
 type Edge struct {
