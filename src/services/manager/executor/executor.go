@@ -2,9 +2,9 @@ package executor
 
 import (
 	"fmt"
+	api "github.com/badochov/distributed-shortest-path/src/libs/api/manager_api"
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/common"
-	"github.com/badochov/distributed-shortest-path/src/services/manager/server/api"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/worker"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/worker/service_manager"
 	"net/http"

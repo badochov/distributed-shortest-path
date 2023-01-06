@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	api "github.com/badochov/distributed-shortest-path/src/libs/worker_api"
+	api "github.com/badochov/distributed-shortest-path/src/libs/api/worker_api"
 	"net/http"
 )
 

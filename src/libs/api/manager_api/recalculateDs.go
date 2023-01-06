@@ -1,4 +1,4 @@
-package api
+package manager_api
 
 const RecalculateDsURL = "/recalculate_ds"
 

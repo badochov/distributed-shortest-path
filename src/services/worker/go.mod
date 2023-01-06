@@ -3,8 +3,8 @@ module github.com/badochov/distributed-shortest-path/src/services/worker
 go 1.19
 
 require (
+	github.com/badochov/distributed-shortest-path/src/libs/api v0.0.0
 	github.com/badochov/distributed-shortest-path/src/libs/db v0.0.0
-	github.com/badochov/distributed-shortest-path/src/libs/worker_api v0.0.0
 	github.com/gin-gonic/gin v1.8.2
 	golang.org/x/net v0.4.0
 	google.golang.org/grpc v1.51.0
@@ -73,6 +73,6 @@ require (
 )
 
 replace (
+	github.com/badochov/distributed-shortest-path/src/libs/api v0.0.0 => ../../libs/api
 	github.com/badochov/distributed-shortest-path/src/libs/db v0.0.0 => ../../libs/db
-	github.com/badochov/distributed-shortest-path/src/libs/worker_api v0.0.0 => ../../libs/worker_api
 )

@@ -2,7 +2,7 @@ package service_server
 
 import (
 	"fmt"
-	api "github.com/badochov/distributed-shortest-path/src/libs/worker_api"
+	api "github.com/badochov/distributed-shortest-path/src/libs/api/worker_api"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/common"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/service_server/executor"
 	"github.com/gin-gonic/gin"

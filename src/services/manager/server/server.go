@@ -2,9 +2,9 @@ package server
 
 import (
 	"fmt"
+	"github.com/badochov/distributed-shortest-path/src/libs/api/manager_api"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/common"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/executor"
-	"github.com/badochov/distributed-shortest-path/src/services/manager/server/api"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -41,7 +41,7 @@ func (h *handler) Run() error {
 }
 
 func (h *handler) ShortestPath(c *gin.Context) {
-	var req api.ShortestPathRequest
+	var req manager_api.ShortestPathRequest
 	if err := c.BindJSON(&req); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
@@ -65,7 +65,7 @@ func (h *handler) RecalculateDs(c *gin.Context) {
 }
 
 func (h *handler) AddVertices(c *gin.Context) {
-	var req api.AddVerticesRequest
+	var req manager_api.AddVerticesRequest
 	if err := c.BindJSON(&req); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
@@ -80,7 +80,7 @@ func (h *handler) AddVertices(c *gin.Context) {
 }
 
 func (h *handler) AddEdges(c *gin.Context) {
-	var req api.AddEdgesRequest
+	var req manager_api.AddEdgesRequest
 	if err := c.BindJSON(&req); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
@@ -119,16 +119,16 @@ func New(deps Deps) Server {
 		executor: deps.Executor,
 	}
 
-	router.POST(api.ShortestPathUrl, h.ShortestPath)
+	router.POST(manager_api.ShortestPathUrl, h.ShortestPath)
 
-	router.GET(api.RecalculateDsURL, h.RecalculateDs)
+	router.GET(manager_api.RecalculateDsURL, h.RecalculateDs)
 
-	router.POST(api.AddVerticesUrl, h.AddVertices)
-	router.POST(api.AddEdgesUrl, h.AddEdges)
+	router.POST(manager_api.AddVerticesUrl, h.AddVertices)
+	router.POST(manager_api.AddEdgesUrl, h.AddEdges)
 
-	router.GET(api.GetGenerationUrl, h.GetGeneration)
+	router.GET(manager_api.GetGenerationUrl, h.GetGeneration)
 
-	router.GET(api.HealthzUrl, h.Healthz)
+	router.GET(manager_api.HealthzUrl, h.Healthz)
 
 	return &server{
 		engine:  router,

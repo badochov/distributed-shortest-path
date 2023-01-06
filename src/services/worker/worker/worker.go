@@ -2,8 +2,8 @@ package worker
 
 import (
 	"context"
+	api "github.com/badochov/distributed-shortest-path/src/libs/api/worker_api"
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
-	api "github.com/badochov/distributed-shortest-path/src/libs/worker_api"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/discoverer"
 )
 
