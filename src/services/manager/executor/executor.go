@@ -16,7 +16,7 @@ import (
 )
 
 // TODO [wprzytula] redo timeouts
-// TODO [wprzytula] retries
+// TODO [wprzytula] retries (one implemention of retires is in src/services/manager/worker/service_manager/manager.go)
 
 type regionId = db.RegionId
 type generation = db.Generation

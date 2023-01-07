@@ -16,7 +16,7 @@ type Deps struct {
 
 type WorkerServiceManager interface {
 	// Rescale rescales worker service to desired amount of replicas. Rescale to 0 to shut down.
-	Rescale(ctx context.Context, replicas int) error
+	Rescale(ctx context.Context, replicas int32) error
 }
 
 type manager struct {
@@ -26,17 +26,31 @@ type manager struct {
 	workerDeploymentTemplate string
 }
 
-func (m *manager) Rescale(ctx context.Context, replicas int) error {
+func (m *manager) Rescale(ctx context.Context, replicas int32) error {
 	var err error
 
 	for i := 0; i < m.numRegions; i++ {
 		name := ""
-		// TODO retry on config mismatch.
-		if scaleErr := m.rescaleDeployment(ctx, name, int32(replicas)); scaleErr != nil {
+
+		const retries = 3
+		if scaleErr := m.rescaleDeploymentWithRetries(ctx, name, replicas, retries); scaleErr != nil {
 			err = multierror.Append(scaleErr, err)
 		}
 	}
 
+	return err
+}
+
+func (m *manager) rescaleDeploymentWithRetries(ctx context.Context, deploymentName string, replicas int32, retries int) error {
+	var err error
+
+	for i := 0; i < retries; i++ {
+		if rescaleErr := m.rescaleDeployment(ctx, deploymentName, replicas); rescaleErr != nil {
+			err = multierror.Append(err, rescaleErr)
+		} else {
+			return nil
+		}
+	}
 	return err
 }
 
