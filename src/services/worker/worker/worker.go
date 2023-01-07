@@ -28,8 +28,6 @@ type LinkInterface interface {
 type Worker interface {
 	ServerInterface
 	LinkInterface
-
-	Run(ctx context.Context) error
 }
 
 type worker struct {
@@ -55,9 +53,12 @@ func (w *worker) Add(a int32, b int32) (int32, error) {
 	return a + b, nil
 }
 
-func New(deps Deps) Worker {
+func New(ctx context.Context, deps Deps) (Worker, error) {
+	if err := deps.Discoverer.Run(ctx); err != nil {
+		return nil, err
+	}
 	return &worker{
 		db:         deps.Db,
 		discoverer: deps.Discoverer,
-	}
+	}, nil
 }

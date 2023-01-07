@@ -49,7 +49,10 @@ func main() {
 		Db:         orm,
 		Discoverer: d,
 	}
-	wrkr := worker.New(workerDeps)
+	wrkr, err := worker.New(context.Background(), workerDeps)
+	if err != nil {
+		log.Fatalf("error creating worker, %s", err)
+	}
 
 	execDeps := executor.Deps{
 		Worker: wrkr,
@@ -72,24 +75,22 @@ func main() {
 	}
 	sL := link_server.New(linkDeps)
 
-	if err := wrkr.Run(context.Background()); err != nil {
-		log.Fatalf("error running worker, %s", err)
-	}
-
 	var wg sync.WaitGroup
 	wg.Add(2)
 
 	go func() {
+		defer wg.Done()
+
 		if err := sW.Run(); err != nil {
 			log.Fatalf("error running worker service server, %s", err)
 		}
-		wg.Done()
 	}()
 	go func() {
+		defer wg.Done()
+
 		if err := sL.Run(); err != nil {
 			log.Fatalf("error running link service server, %s", err)
 		}
-		wg.Done()
 	}()
 
 	wg.Wait()
