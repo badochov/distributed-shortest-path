@@ -15,14 +15,20 @@ type Deps struct {
 type ShortestPathArgs = api.ShortestPathRequest
 type ShortestPathResult = api.ShortestPathResponse
 
-// Worker All methods from link service and worker service should end up calling this interface.
-type Worker interface {
-	// Server
+type ServerInterface interface {
 	CalculateArcFlags() error
 	ShortestPath(args ShortestPathArgs) (ShortestPathResult, error)
+}
 
-	// Link
-	Add(a int32, b int32) (int32, error) // Example
+type LinkInterface interface {
+	CalculateArcFlags() error
+	ShortestPath(args ShortestPathArgs) (ShortestPathResult, error)
+}
+
+// Worker All methods from link service and worker service should end up calling this interface.
+type Worker interface {
+	ServerInterface
+	LinkInterface
 
 	Run(ctx context.Context) error
 }
@@ -48,11 +54,6 @@ func (w *worker) Run(ctx context.Context) error {
 
 func (w *worker) Add(a int32, b int32) (int32, error) {
 	return a + b, nil
-}
-
-func (w *worker) AssignSegment(id int32) error {
-	//TODO implement me
-	panic("implement me")
 }
 
 func New(deps Deps) Worker {
