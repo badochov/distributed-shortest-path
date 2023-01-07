@@ -21,8 +21,7 @@ type ServerInterface interface {
 }
 
 type LinkInterface interface {
-	CalculateArcFlags() error
-	ShortestPath(args ShortestPathArgs) (ShortestPathResult, error)
+	Add(a int32, b int32) (int32, error) // Example
 }
 
 // Worker All methods from link service and worker service should end up calling this interface.
