@@ -6,7 +6,6 @@ import (
 	api "github.com/badochov/distributed-shortest-path/src/libs/api/manager_api"
 	"github.com/badochov/distributed-shortest-path/src/libs/api/worker_api"
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
-	"github.com/badochov/distributed-shortest-path/src/services/manager/common"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/worker"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/worker/service_manager"
 	"golang.org/x/sync/errgroup"
@@ -38,8 +37,6 @@ type Executor interface {
 	GetGeneration() (resp api.GetGenerationResponse, code int, err error)
 
 	Healthz() (resp api.HealthzResponse, code int, err error)
-
-	common.Runner
 }
 
 type executor struct {
@@ -53,15 +50,6 @@ type executor struct {
 
 func (e *executor) GetGeneration() (resp api.GetGenerationResponse, code int, err error) {
 	return api.GetGenerationResponse{Generation: e.generation}, http.StatusOK, nil
-}
-
-func (e *executor) Run(ctx context.Context) (err error) {
-	e.generation, err = e.getGen(ctx)
-	if err != nil {
-		return
-	}
-	e.nextGeneration, err = e.getNextGen(ctx)
-	return
 }
 
 func (e *executor) getRegion(id db.VertexId) (db.RegionId, error) {
@@ -266,11 +254,20 @@ func (e *executor) calculateArcFlags(baseCtx context.Context) error {
 	return grp.Wait()
 }
 
+func (e *executor) init(ctx context.Context) (err error) {
+	e.generation, err = e.getGen(ctx)
+	if err != nil {
+		return
+	}
+	e.nextGeneration, err = e.getNextGen(ctx)
+	return
+}
+
 func timeoutCtx(duration time.Duration) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), duration)
 }
 
-func New(deps Deps) Executor {
+func New(ctx context.Context, deps Deps) (Executor, error) {
 	ex := &executor{
 		db:                  deps.Db,
 		clients:             make(map[regionId]worker.Client, deps.NumRegions),
@@ -284,5 +281,8 @@ func New(deps Deps) Executor {
 		})
 	}
 
-	return ex
+	if err := ex.init(ctx); err != nil {
+		return nil, err
+	}
+	return ex, nil
 }

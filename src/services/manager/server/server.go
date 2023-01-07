@@ -1,10 +1,8 @@
 package server
 
 import (
-	"context"
 	"fmt"
 	"github.com/badochov/distributed-shortest-path/src/libs/api/manager_api"
-	"github.com/badochov/distributed-shortest-path/src/services/manager/common"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/executor"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -16,7 +14,7 @@ type Deps struct {
 }
 
 type Server interface {
-	common.Runner
+	Run() error
 }
 
 type server struct {
@@ -25,20 +23,12 @@ type server struct {
 	port    int
 }
 
-func (s *server) Run(ctx context.Context) error {
-	if err := s.handler.Run(ctx); err != nil {
-		return err
-	}
-
+func (s *server) Run() error {
 	return s.engine.Run(fmt.Sprintf(":%d", s.port))
 }
 
 type handler struct {
 	executor executor.Executor
-}
-
-func (h *handler) Run(ctx context.Context) error {
-	return h.executor.Run(ctx)
 }
 
 func (h *handler) ShortestPath(c *gin.Context) {

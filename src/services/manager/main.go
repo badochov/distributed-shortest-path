@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/executor"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/server"
@@ -23,21 +24,21 @@ func getPortFromEnv(envName string) int {
 	return port
 }
 
-func main() {
+func getServer(ctx context.Context) (server.Server, error) {
 	orm, err := db.ConnectToDefault()
 	if err != nil {
-		log.Fatal("Error opening db,", err)
+		return nil, fmt.Errorf("error opening db, %w", err)
 	}
 
 	numRegionsStr := os.Getenv("NUM_REGIONS")
 	numRegions, err := strconv.Atoi(numRegionsStr)
 	if err != nil {
-		log.Fatal("Error parsing number of regions,", err)
+		return nil, fmt.Errorf("error parsing number of regions, %w", err)
 	}
 
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	clientset := kubernetes.NewForConfigOrDie(config)
 	workerServerManagerDeps := service_manager.Deps{
@@ -55,7 +56,10 @@ func main() {
 		Db:                  orm,
 		WorkerServerManager: workerServerManager,
 	}
-	exctr := executor.New(executorDeps)
+	exctr, err := executor.New(ctx, executorDeps)
+	if err != nil {
+		return nil, fmt.Errorf("error starting executor, %w", err)
+	}
 
 	serverDeps := server.Deps{
 		Executor: exctr,
@@ -63,9 +67,18 @@ func main() {
 	}
 	srv := server.New(serverDeps)
 
+	return srv, nil
+}
+
+func main() {
 	ctx, can := context.WithTimeout(context.Background(), 15*time.Second)
-	defer can()
-	if err := srv.Run(ctx); err != nil {
+	srv, err := getServer(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	can()
+
+	if err := srv.Run(); err != nil {
 		log.Fatal("Error while running server,", err)
 	}
 }
