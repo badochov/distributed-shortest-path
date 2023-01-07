@@ -9,12 +9,14 @@ import (
 	"github.com/badochov/distributed-shortest-path/src/services/manager/common"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/worker"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/worker/service_manager"
-	"github.com/hashicorp/go-multierror"
 	"golang.org/x/sync/errgroup"
 	"net/http"
 	"sync"
 	"time"
 )
+
+// TODO [wprzytula] redo timeouts
+// TODO [wprzytula] retries
 
 type regionId = db.RegionId
 type generation = db.Generation
@@ -88,21 +90,16 @@ func (e *executor) ShortestPath(req api.ShortestPathRequest) (resp api.ShortestP
 		To:   req.To,
 	}
 
-	err = nil
-
-	const retries = 3
-	for i := 0; i < retries; i++ {
-		res, workerErr := e.clients[regId].ShortestPath(ctx, workerReq)
-		if workerErr == nil {
-			return api.ShortestPathResponse{
-				Distance: res.Distance,
-				Vertices: res.Vertices,
-			}, http.StatusOK, nil
-		}
-		err = multierror.Append(err, workerErr)
+	// TODO [wprzytula] Think if retries should be implemented and how.
+	res, err := e.clients[regId].ShortestPath(ctx, workerReq)
+	if err != nil {
+		return api.ShortestPathResponse{}, http.StatusInternalServerError, err
 	}
 
-	return api.ShortestPathResponse{}, http.StatusInternalServerError, err
+	return api.ShortestPathResponse{
+		Distance: res.Distance,
+		Vertices: res.Vertices,
+	}, http.StatusOK, nil
 }
 
 func (e *executor) AddEdges(req api.AddEdgesRequest) (resp api.AddEdgesRequest, code int, err error) {
@@ -143,7 +140,6 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 	defer can()
 
 	wrap := func(err error) (api.RecalculateDsResponse, int, error) {
-		// TODO remove nextGen info in case of a failure.
 		return api.RecalculateDsResponse{}, http.StatusInternalServerError, err
 	}
 
@@ -170,7 +166,7 @@ func (e *executor) incNextGen(ctx context.Context) (err error) {
 	ctx, can := context.WithTimeout(ctx, time.Second)
 	defer can()
 
-	// TODO Think if retries should be implemented and how.
+	// TODO [wprzytula] Think if retries should be implemented and how.
 	if err := e.db.SetNextGeneration(ctx, e.nextGeneration+1); err != nil {
 		return err
 	}
@@ -183,7 +179,7 @@ func (e *executor) getNextGen(ctx context.Context) (generation, error) {
 	ctx, can := context.WithTimeout(ctx, time.Second)
 	defer can()
 
-	// TODO Think if retries should be implemented and how.
+	// TODO [wprzytula] Think if retries should be implemented and how.
 	return e.db.GetNextGeneration(ctx)
 }
 
@@ -191,7 +187,7 @@ func (e *executor) getGen(ctx context.Context) (generation, error) {
 	ctx, can := context.WithTimeout(ctx, time.Second)
 	defer can()
 
-	// TODO Think if retries should be implemented and how.
+	// TODO [wprzytula] Think if retries should be implemented and how.
 	return e.db.GetCurrentGeneration(ctx)
 }
 
@@ -199,7 +195,7 @@ func (e *executor) setGenToNext(ctx context.Context) (err error) {
 	ctx, can := context.WithTimeout(ctx, time.Second)
 	defer can()
 
-	// TODO Think if retries should be implemented and how.
+	// TODO [wprzytula] Think if retries should be implemented and how.
 	if err := e.db.SetCurrentGeneration(ctx, e.nextGeneration); err != nil {
 		return err
 	}
@@ -212,7 +208,7 @@ func (e *executor) deleteNextGen(ctx context.Context) (err error) {
 	ctx, can := context.WithTimeout(ctx, time.Second)
 	defer can()
 
-	// TODO Think if retries should be implemented and how.
+	// TODO [wprzytula] Think if retries should be implemented and how.
 	if err := e.db.DeleteNextGeneration(ctx); err != nil {
 		return err
 	}
@@ -224,12 +220,12 @@ func (e *executor) divideIntoRegions(ctx context.Context) error {
 	ctx, can := context.WithTimeout(ctx, time.Minute)
 	defer can()
 
-	// TODO Think if retries should be implemented and how.
+	// TODO [wprzytula] Think if retries should be implemented and how.
 	return e.divideIntoRegionsDoer(ctx)
 }
 
 func (e *executor) divideIntoRegionsDoer(ctx context.Context) error {
-	// TODO Implement me
+	// TODO [kdrabik] Implement me
 	panic("Implement me")
 }
 
@@ -259,17 +255,11 @@ func (e *executor) calculateArcFlags(baseCtx context.Context) error {
 		cl := cl
 
 		grp.Go(func() error {
-			var err error
-
-			const retries = 3
-			for i := 0; i < retries; i++ {
-				if calcErr := cl.CalculateArcFlags(grpCtx); calcErr != nil {
-					err = multierror.Append(err, calcErr)
-				} else {
-					return nil
-				}
+			// TODO [wprzytula] Think if retries should be implemented and how.
+			if err := cl.CalculateArcFlags(grpCtx); err != nil {
+				return fmt.Errorf("error calculating flags in region %d, %w", regId, err)
 			}
-			return fmt.Errorf("error calculating flags in region %d, %w", regId, err)
+			return nil
 		})
 	}
 
@@ -289,7 +279,7 @@ func New(deps Deps) Executor {
 
 	for i := 0; i < deps.NumRegions; i++ {
 		ex.clients[regionId(i)] = worker.NewClient(worker.Deps{
-			HttpClient: http.DefaultClient, // TODO customize timeouts,
+			HttpClient: http.DefaultClient, // TODO [wprzytula] customize timeouts,
 			Url:        fmt.Sprintf(deps.RegionUrlTemplate+":%d", i, deps.Port),
 		})
 	}
