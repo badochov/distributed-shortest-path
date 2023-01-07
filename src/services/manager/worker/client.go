@@ -23,7 +23,11 @@ type client struct {
 }
 
 func (c *client) CalculateArcFlags(ctx context.Context) error {
-	r, err := c.client.Get(c.url(api.CalculateArcFlagsUrl))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.url(api.CalculateArcFlagsUrl), nil)
+	if err != nil {
+		return fmt.Errorf("error creating CalculateArcFlags request, %w", err)
+	}
+	r, err := c.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("error performing CalculateArcFlags request, %w", err)
 	}
@@ -41,22 +45,27 @@ func (c *client) ShortestPath(ctx context.Context, args ShortestPathArgs) (res S
 	if err != nil {
 		return ShortestPathResult{}, err
 	}
-	r, err := c.client.Post(c.url(api.ShortestPathUrl), "application/json", bytes.NewBuffer(data))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url(api.ShortestPathUrl), bytes.NewBuffer(data))
 	if err != nil {
-		return ShortestPathResult{}, fmt.Errorf("error performing CalculateArcFlags request, %w", err)
+		return ShortestPathResult{}, fmt.Errorf("error creating ShortestPath request, %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	r, err := c.client.Do(req)
+	if err != nil {
+		return ShortestPathResult{}, fmt.Errorf("error performing ShortestPath request, %w", err)
 	}
 	defer func() {
 		if errClose := r.Body.Close(); errClose != nil {
-			err = fmt.Errorf("error closing CalculateArcFlags request body, %w", errClose)
+			err = fmt.Errorf("error closing ShortestPath request body, %w", errClose)
 		}
 	}()
 
 	if r.StatusCode != http.StatusOK {
-		return res, fmt.Errorf("worker server responded to CalculateArcFlags with code=%d, status %s", r.StatusCode, r.Status)
+		return res, fmt.Errorf("worker server responded to ShortestPath with code=%d, status %s", r.StatusCode, r.Status)
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&res); err != nil {
-		return ShortestPathResult{}, fmt.Errorf("error decoding CalculateArcFlags request body, %w", err)
+		return ShortestPathResult{}, fmt.Errorf("error decoding ShortestPath request body, %w", err)
 	}
 
 	return
