@@ -49,12 +49,15 @@ func getServer(ctx context.Context) (server.Server, error) {
 	}
 	workerServerManager := service_manager.New(workerServerManagerDeps)
 
+	defaultWorkerReplicasStr := os.Getenv("DEFAULT_WORKER_REPLICAS")
+	defaultWorkerReplicas, err := strconv.ParseInt(defaultWorkerReplicasStr, 10, 32)
 	executorDeps := executor.Deps{
-		NumRegions:          numRegions,
-		RegionUrlTemplate:   os.Getenv("REGION_URL_TEMPLATE"),
-		Port:                getPortFromEnv("WORKER_SERVER_PORT"),
-		Db:                  orm,
-		WorkerServerManager: workerServerManager,
+		NumRegions:            numRegions,
+		RegionUrlTemplate:     os.Getenv("REGION_URL_TEMPLATE"),
+		Port:                  getPortFromEnv("WORKER_SERVER_PORT"),
+		Db:                    orm,
+		WorkerServerManager:   workerServerManager,
+		DefaultWorkerReplicas: int32(defaultWorkerReplicas),
 	}
 	exctr, err := executor.New(ctx, executorDeps)
 	if err != nil {

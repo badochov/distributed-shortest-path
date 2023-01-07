@@ -14,18 +14,21 @@ import (
 	"time"
 )
 
-// TODO [wprzytula] redo timeouts
 // TODO [wprzytula] retries (one implemention of retires is in src/services/manager/worker/service_manager/manager.go)
+// TODO [wprzytula] restarting worker service on failures
+// TODO [wprzytula] bringing back sane state at startup in case of service failure
+// TODO [wprzytula] redo timeouts. Current implementation with timeoutCtx at the start of almost every method looks poor.
 
 type regionId = db.RegionId
 type generation = db.Generation
 
 type Deps struct {
-	NumRegions          int
-	RegionUrlTemplate   string
-	Db                  db.DB
-	Port                int
-	WorkerServerManager service_manager.WorkerServiceManager
+	NumRegions            int
+	RegionUrlTemplate     string
+	Db                    db.DB
+	Port                  int
+	WorkerServerManager   service_manager.WorkerServiceManager
+	DefaultWorkerReplicas int32
 }
 
 type Executor interface {
@@ -40,12 +43,13 @@ type Executor interface {
 }
 
 type executor struct {
-	generation          generation
-	nextGeneration      generation
-	clients             map[regionId]worker.Client
-	db                  db.DB
-	workerServerManager service_manager.WorkerServiceManager
-	recalculateLock     sync.RWMutex
+	generation            generation
+	nextGeneration        generation
+	clients               map[regionId]worker.Client
+	db                    db.DB
+	workerServerManager   service_manager.WorkerServiceManager
+	recalculateLock       sync.RWMutex
+	defaultWorkerReplicas int32
 }
 
 func (e *executor) GetGeneration() (resp api.GetGenerationResponse, code int, err error) {
@@ -128,15 +132,26 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 	defer can()
 
 	wrap := func(err error) (api.RecalculateDsResponse, int, error) {
+		// TODO [wprzytula] handle restart workers on failure.
+		// TODO [wprzytula] handle clean state. (Removing nextGen from DB, etc).
 		return api.RecalculateDsResponse{}, http.StatusInternalServerError, err
 	}
 
+	// Shutdown worker service.
+	if err := e.workerServerManager.Rescale(ctx, 0); err != nil {
+		return wrap(err)
+	}
 	if err := e.incNextGen(ctx); err != nil {
 		return wrap(err)
 	}
 	if err := e.divideIntoRegions(ctx); err != nil {
 		return wrap(err)
 	}
+	// Start worker service.
+	if err := e.workerServerManager.Rescale(ctx, e.defaultWorkerReplicas); err != nil {
+		return wrap(err)
+	}
+	// TODO [wprzytula] wait for workers to be alive (eg. Add Healthz method to client and wait for it to respond with success)
 	if err := e.calculateArcFlags(ctx); err != nil {
 		return wrap(err)
 	}
@@ -146,6 +161,14 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 	if err := e.deleteNextGen(ctx); err != nil {
 		return wrap(err)
 	}
+	// Restart worker service.
+	if err := e.workerServerManager.Rescale(ctx, 0); err != nil {
+		return wrap(err)
+	}
+	if err := e.workerServerManager.Rescale(ctx, e.defaultWorkerReplicas); err != nil {
+		return wrap(err)
+	}
+	// TODO [wprzytula] wait for workers to be alive (eg. Add Healthz method to client and wait for it to respond with success)
 
 	return api.RecalculateDsResponse{}, http.StatusOK, nil
 }
@@ -260,6 +283,8 @@ func (e *executor) init(ctx context.Context) (err error) {
 		return
 	}
 	e.nextGeneration, err = e.getNextGen(ctx)
+	// TODO [wprzytula] handle starting worker service if it was stopped by previous manager who failed.
+	// TODO [wprzytula] handle clean state. (Removing nextGen from DB, etc.).
 	return
 }
 
@@ -269,9 +294,10 @@ func timeoutCtx(duration time.Duration) (context.Context, context.CancelFunc) {
 
 func New(ctx context.Context, deps Deps) (Executor, error) {
 	ex := &executor{
-		db:                  deps.Db,
-		clients:             make(map[regionId]worker.Client, deps.NumRegions),
-		workerServerManager: deps.WorkerServerManager,
+		db:                    deps.Db,
+		clients:               make(map[regionId]worker.Client, deps.NumRegions),
+		workerServerManager:   deps.WorkerServerManager,
+		defaultWorkerReplicas: deps.DefaultWorkerReplicas,
 	}
 
 	for i := 0; i < deps.NumRegions; i++ {
