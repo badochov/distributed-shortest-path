@@ -8,7 +8,7 @@ import (
 )
 
 type Deps struct {
-	Db         *db.DB
+	Db         db.DB
 	Discoverer discoverer.Discoverer
 }
 
@@ -28,7 +28,7 @@ type Worker interface {
 }
 
 type worker struct {
-	db         *db.DB
+	db         db.DB
 	discoverer discoverer.Discoverer
 }
 

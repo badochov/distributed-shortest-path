@@ -27,6 +27,7 @@ func Parse(path string) ([]client.Vertex, []client.Edge, error) {
 			edges = append(edges, client.Edge{
 				From: currN.ID,
 				To:   n.ID,
+				Id:   w.ID,
 			})
 			currN = n
 		}

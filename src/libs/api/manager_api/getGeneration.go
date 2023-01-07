@@ -2,6 +2,8 @@ package manager_api
 
 const GetGenerationUrl = "/get_generation"
 
+type Generation = uint16
+
 type GetGenerationResponse struct {
-	Generation int `json:"generation"`
+	Generation Generation `json:"generation"`
 }

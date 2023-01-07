@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
+cd -P -- "$(dirname -- "$0")" || exit 1
+
 if [ -z $1 ]; then
   echo "Usage $0 <version>"
   exit 1
@@ -7,10 +9,6 @@ fi
 
 VERSION=$1
 
-(
-  cd src/services/worker || exit 1
-  ./new_version.sh "$VERSION"
-)
+./src/services/worker/new_version.sh "$VERSION"
 
-cd cluster/workers || exit 1
-./update.sh "$VERSION"
+./cluster/workers/update.sh "$VERSION"

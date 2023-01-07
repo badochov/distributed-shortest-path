@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
+cd -P -- "$(dirname -- "$0")" || exit 1
+
 if [ "$1" = "--local" ]; then
   IS_LOCAL=true
 fi
@@ -10,27 +12,23 @@ kubectl apply -f postgres-config.yaml
 kubectl apply -f workers-manager-role.yaml
 
 if [ "$IS_LOCAL" = true ]; then
+  kubectl apply -f query-pv.yaml
+fi
+
+if [ "$IS_LOCAL" = true ]; then
   kubectl apply -f metrics-server.local.yaml
 else
   kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
 fi
 
-(
-  cd postgres || exit 1
-  ./deploy.sh
-)
+./postgres/deploy.sh
 
-(
-  cd manager || exit 1
-  ./deploy.sh
-)
+./manager/deploy.sh
 
-(
-  cd workers || exit 1
-  if [ "$IS_LOCAL" = true ]; then
-    ./generate.sh --local || exit 1
-  else
-    ./generate.sh || exit 1
-  fi
-  ./deploy.sh
-)
+
+if [ "$IS_LOCAL" = true ]; then
+  ./workers/generate.sh --local || exit 1
+else
+  ./workers/generate.sh || exit 1
+fi
+./workers/deploy.sh

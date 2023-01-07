@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+worker
 
 if [ -z $1 ]; then
   echo "Usage $0 <version>"

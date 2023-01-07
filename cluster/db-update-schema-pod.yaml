@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: db-update-schema
+  namespace: shortest-path
+spec:
+  volumes:
+    - name: query
+      persistentVolumeClaim:
+        claimName: pvc-query
+  containers:
+    - name: db-update-schema
+      image: shortest-path/db/update-schema:0.0.1
+      envFrom:
+        - configMapRef:
+            name: postgres-config
+      volumeMounts:
+        - mountPath: /query
+          name: query

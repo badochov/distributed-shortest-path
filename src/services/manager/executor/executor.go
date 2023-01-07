@@ -15,7 +15,7 @@ type regionId int
 type Deps struct {
 	NumRegions          int
 	RegionUrlTemplate   string
-	Db                  *db.DB
+	Db                  db.DB
 	Port                int
 	WorkerServerManager service_manager.WorkerServiceManager
 }
@@ -35,7 +35,7 @@ type Executor interface {
 
 type executor struct {
 	clients             map[regionId]worker.Client
-	db                  *db.DB
+	db                  db.DB
 	workerServerManager service_manager.WorkerServiceManager
 }
 
