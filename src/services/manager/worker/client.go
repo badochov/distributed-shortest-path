@@ -2,6 +2,7 @@ package worker
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	api "github.com/badochov/distributed-shortest-path/src/libs/api/worker_api"
@@ -12,8 +13,8 @@ type ShortestPathArgs = api.ShortestPathRequest
 type ShortestPathResult = api.ShortestPathResponse
 
 type Client interface {
-	CalculateArcFlags() error
-	ShortestPath(args ShortestPathArgs) (ShortestPathResult, error)
+	CalculateArcFlags(ctx context.Context) error
+	ShortestPath(ctx context.Context, args ShortestPathArgs) (ShortestPathResult, error)
 }
 
 type client struct {
@@ -21,7 +22,7 @@ type client struct {
 	baseUrl string
 }
 
-func (c *client) CalculateArcFlags() error {
+func (c *client) CalculateArcFlags(ctx context.Context) error {
 	r, err := c.client.Get(c.url(api.CalculateArcFlagsUrl))
 	if err != nil {
 		return fmt.Errorf("error performing CalculateArcFlags request, %w", err)
@@ -35,7 +36,7 @@ func (c *client) CalculateArcFlags() error {
 	return nil
 }
 
-func (c *client) ShortestPath(args ShortestPathArgs) (res ShortestPathResult, err error) {
+func (c *client) ShortestPath(ctx context.Context, args ShortestPathArgs) (res ShortestPathResult, err error) {
 	data, err := json.Marshal(args)
 	if err != nil {
 		return ShortestPathResult{}, err
