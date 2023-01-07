@@ -10,9 +10,13 @@ import (
 )
 
 type WorkerInstanceStatus struct {
-	Status v1.PodPhase
-	Ip     string
-	Name   string
+	Status   v1.PodPhase
+	Ip       string
+	RegionId int
+}
+
+func (w *WorkerInstanceStatus) IsRunning() bool {
+	return w.Status == v1.PodRunning
 }
 
 type Deps struct {
@@ -105,10 +109,16 @@ func (d *discoverer) Run(ctx context.Context) error {
 	go func() {
 		for ev := range podWatcher.ResultChan() {
 			pod := ev.Object.(*v1.Pod)
+			regStr := pod.Labels["region"]
+			regId, err := strconv.Atoi(regStr)
+			if err != nil {
+				panic(err)
+			}
+
 			podCh <- WorkerInstanceStatus{
-				Status: pod.Status.Phase,
-				Ip:     pod.Status.PodIP,
-				Name:   pod.Name,
+				Status:   pod.Status.Phase,
+				Ip:       pod.Status.PodIP,
+				RegionId: regId,
 			}
 		}
 	}()

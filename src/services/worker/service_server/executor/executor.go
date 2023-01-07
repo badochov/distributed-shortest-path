@@ -3,12 +3,19 @@ package executor
 import (
 	api "github.com/badochov/distributed-shortest-path/src/libs/api/worker_api"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/common"
-	"github.com/badochov/distributed-shortest-path/src/services/worker/worker"
 	"net/http"
 )
 
 type Deps struct {
-	Worker worker.Worker
+	Worker Worker
+}
+
+type ShortestPathArgs = api.ShortestPathRequest
+type ShortestPathResult = api.ShortestPathResponse
+
+type Worker interface {
+	CalculateArcFlags() error
+	ShortestPath(args ShortestPathArgs) (ShortestPathResult, error)
 }
 
 type Executor interface {
@@ -21,7 +28,7 @@ type Executor interface {
 }
 
 type executor struct {
-	worker worker.Worker
+	worker Worker
 }
 
 func (e *executor) Run() error {

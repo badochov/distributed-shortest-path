@@ -2,9 +2,12 @@ package worker
 
 import (
 	"context"
-	api "github.com/badochov/distributed-shortest-path/src/libs/api/worker_api"
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/discoverer"
+	"github.com/badochov/distributed-shortest-path/src/services/worker/link"
+	"github.com/badochov/distributed-shortest-path/src/services/worker/link/link_server"
+	"github.com/badochov/distributed-shortest-path/src/services/worker/service_server/executor"
+	"log"
 )
 
 type Deps struct {
@@ -12,24 +15,13 @@ type Deps struct {
 	Discoverer discoverer.Discoverer
 	RegionID   db.RegionId
 	Context    context.Context
-}
-
-type ShortestPathArgs = api.ShortestPathRequest
-type ShortestPathResult = api.ShortestPathResponse
-
-type ServerInterface interface {
-	CalculateArcFlags() error
-	ShortestPath(args ShortestPathArgs) (ShortestPathResult, error)
-}
-
-type LinkInterface interface {
-	Add(a int32, b int32) (int32, error) // Example
+	LinkPort   int
 }
 
 // Worker All methods from link service and worker service should end up calling this interface.
 type Worker interface {
-	ServerInterface
-	LinkInterface
+	executor.Worker
+	link_server.Worker
 
 	LoadRegionData(ctx context.Context) error
 }
@@ -46,6 +38,8 @@ type worker struct {
 	generation db.Generation
 	regionId   db.RegionId
 	data       workerData
+	links      map[int]link.RegionManager
+	linkPort   int
 }
 
 func (w *worker) CalculateArcFlags() error {
@@ -53,7 +47,7 @@ func (w *worker) CalculateArcFlags() error {
 	panic("implement me")
 }
 
-func (w *worker) ShortestPath(args ShortestPathArgs) (ShortestPathResult, error) {
+func (w *worker) ShortestPath(args executor.ShortestPathArgs) (executor.ShortestPathResult, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -101,18 +95,26 @@ func (w *worker) initDiscoverer(ctx context.Context) error {
 	return nil
 }
 
-func (w *worker) Add(a int32, b int32) (int32, error) {
+func (w *worker) Add(ctx context.Context, a int32, b int32) (int32, error) {
 	return a + b, nil
 }
 
 func (w *worker) handleInstanceStatus(status discoverer.WorkerInstanceStatus) {
-	//TODO
-	panic("IMPLEMENT ME")
+	// TODO
 }
 
 func (w *worker) handleRegionData(data discoverer.RegionData) {
-	//TODO
-	panic("IMPLEMENT ME")
+	l, ok := w.links[data.RegionId]
+	if !ok {
+		l = link.NewRegionManager(w.linkPort)
+	}
+	err := l.UpdateInstances(data.Instances)
+	if err != nil {
+		log.Print(err)
+	}
+	if !ok {
+		w.links[data.RegionId] = l
+	}
 }
 
 func New(deps Deps) (Worker, error) {
@@ -120,6 +122,7 @@ func New(deps Deps) (Worker, error) {
 		db:         deps.Db,
 		discoverer: deps.Discoverer,
 		regionId:   deps.RegionID,
+		linkPort:   deps.LinkPort,
 	}
 	if err := w.initDiscoverer(deps.Context); err != nil {
 		return nil, err

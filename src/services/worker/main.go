@@ -51,11 +51,13 @@ func main() {
 	if err != nil {
 		log.Fatal("can't parser REGION", err)
 	}
+	linkPort := getPortFromEnv("LINK_SERVER_PORT")
 	workerDeps := worker.Deps{
 		Db:         orm,
 		Discoverer: d,
 		RegionID:   uint16(regionId),
 		Context:    context.Background(),
+		LinkPort:   linkPort,
 	}
 	wrkr, err := worker.New(workerDeps)
 	if err != nil {
@@ -79,7 +81,7 @@ func main() {
 	}
 	sW := service_server.New(serviceDeps)
 
-	lL, err := net.Listen("tcp", fmt.Sprintf(":%d", getPortFromEnv("LINK_SERVER_PORT")))
+	lL, err := net.Listen("tcp", fmt.Sprintf(":%d", linkPort))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

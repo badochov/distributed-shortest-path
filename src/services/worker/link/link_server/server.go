@@ -3,25 +3,28 @@ package link_server
 import (
 	"github.com/badochov/distributed-shortest-path/src/services/worker/common"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/link/proto"
-	"github.com/badochov/distributed-shortest-path/src/services/worker/worker"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"log"
 	"net"
 )
 
+type Worker interface {
+	Add(ctx context.Context, a, b int32) (int32, error) // Example
+}
+
 type Deps struct {
 	Listener net.Listener
-	Worker   worker.Worker
+	Worker   Worker
 }
 
 type linkService struct {
 	proto.UnimplementedLinkServer
-	worker worker.Worker
+	worker Worker
 }
 
 func (s *linkService) Add(ctx context.Context, req *proto.AddRequest) (*proto.AddResponse, error) {
-	res, err := s.worker.Add(req.A, req.B)
+	res, err := s.worker.Add(ctx, req.A, req.B)
 	if err != nil {
 		return nil, err
 	}
