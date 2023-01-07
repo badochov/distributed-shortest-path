@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"context"
 	"fmt"
 	api "github.com/badochov/distributed-shortest-path/src/libs/api/manager_api"
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
@@ -8,6 +9,8 @@ import (
 	"github.com/badochov/distributed-shortest-path/src/services/manager/worker"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/worker/service_manager"
 	"net/http"
+	"sync"
+	"time"
 )
 
 type regionId int
@@ -28,20 +31,21 @@ type Executor interface {
 
 	GetGeneration() (resp api.GetGenerationResponse, code int, err error)
 
-	Healthz() (resp api.RecalculateDsResponse, code int, err error)
+	Healthz() (resp api.HealthzResponse, code int, err error)
 
 	common.Runner
 }
 
 type executor struct {
+	generation          uint16
 	clients             map[regionId]worker.Client
 	db                  db.DB
 	workerServerManager service_manager.WorkerServiceManager
+	recalculateLock     sync.RWMutex
 }
 
 func (e *executor) GetGeneration() (resp api.GetGenerationResponse, code int, err error) {
-	//TODO implement me
-	panic("implement me")
+	return api.GetGenerationResponse{Generation: e.generation}, http.StatusOK, nil
 }
 
 func (e *executor) Run() error {
@@ -54,13 +58,29 @@ func (e *executor) ShortestPath(req api.ShortestPathRequest) (resp api.ShortestP
 }
 
 func (e *executor) AddEdges(req api.AddEdgesRequest) (resp api.AddEdgesRequest, code int, err error) {
-	//TODO implement me
-	panic("implement me")
+	e.recalculateLock.RLock()
+	defer e.recalculateLock.RUnlock()
+
+	ctx, can := timeoutCtx(15 * time.Second)
+	defer can()
+
+	if err := e.db.AddEdges(ctx, req.Edges, e.generation); err != nil {
+		return api.AddEdgesRequest{}, http.StatusInternalServerError, err
+	}
+	return api.AddEdgesRequest{}, http.StatusOK, err
 }
 
 func (e *executor) AddVertices(req api.AddVerticesRequest) (resp api.AddVerticesResponse, code int, err error) {
-	//TODO implement me
-	panic("implement me")
+	e.recalculateLock.RLock()
+	defer e.recalculateLock.RUnlock()
+	
+	ctx, can := timeoutCtx(15 * time.Second)
+	defer can()
+
+	if err := e.db.AddVertices(ctx, req.Vertices, e.generation); err != nil {
+		return api.AddVerticesResponse{}, http.StatusInternalServerError, err
+	}
+	return api.AddVerticesResponse{}, http.StatusOK, err
 }
 
 func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, err error) {
@@ -68,8 +88,12 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 	panic("implement me")
 }
 
-func (e *executor) Healthz() (resp api.RecalculateDsResponse, code int, err error) {
-	return // Dummy endpoint
+func (e *executor) Healthz() (resp api.HealthzResponse, code int, err error) {
+	return api.HealthzResponse{}, http.StatusOK, nil
+}
+
+func timeoutCtx(duration time.Duration) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), duration)
 }
 
 func New(deps Deps) Executor {
