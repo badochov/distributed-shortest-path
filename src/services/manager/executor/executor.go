@@ -225,10 +225,10 @@ func (e *executor) divideIntoRegions(ctx context.Context) error {
 	defer can()
 
 	// TODO Think if retries should be implemented and how.
-	return e.divideIntoRegionsDoer(ctx, e.nextGeneration)
+	return e.divideIntoRegionsDoer(ctx)
 }
 
-func (e *executor) divideIntoRegionsDoer(ctx context.Context, nextGeneration generation) error {
+func (e *executor) divideIntoRegionsDoer(ctx context.Context) error {
 	// TODO Implement me
 	panic("Implement me")
 }
