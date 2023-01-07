@@ -17,11 +17,12 @@ type Client interface {
 }
 
 type client struct {
-	client *http.Client
+	client  *http.Client
+	baseUrl string
 }
 
 func (c *client) CalculateArcFlags() error {
-	r, err := c.client.Get(api.CalculateArcFlagsUrl)
+	r, err := c.client.Get(c.url(api.CalculateArcFlagsUrl))
 	if err != nil {
 		return fmt.Errorf("error performing CalculateArcFlags request, %w", err)
 	}
@@ -39,7 +40,7 @@ func (c *client) ShortestPath(args ShortestPathArgs) (res ShortestPathResult, er
 	if err != nil {
 		return ShortestPathResult{}, err
 	}
-	r, err := c.client.Post(api.ShortestPathUrl, "application/json", bytes.NewBuffer(data))
+	r, err := c.client.Post(c.url(api.ShortestPathUrl), "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return ShortestPathResult{}, fmt.Errorf("error performing CalculateArcFlags request, %w", err)
 	}
@@ -60,7 +61,16 @@ func (c *client) ShortestPath(args ShortestPathArgs) (res ShortestPathResult, er
 	return
 }
 
+func (c *client) url(path string) string {
+	return fmt.Sprintf("http://%s%s", c.baseUrl, path)
+}
+
+type Deps struct {
+	HttpClient *http.Client
+	Url        string
+}
+
 // NewClient sets up client to a worker service.
-func NewClient(cl *http.Client) Client {
-	return &client{client: cl}
+func NewClient(deps Deps) Client {
+	return &client{client: deps.HttpClient, baseUrl: deps.Url}
 }

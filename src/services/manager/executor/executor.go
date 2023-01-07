@@ -72,18 +72,6 @@ func (e *executor) Healthz() (resp api.RecalculateDsResponse, code int, err erro
 	return // Dummy endpoint
 }
 
-type baseUrlRoundTripper struct {
-	host string
-
-	roundTripper http.RoundTripper
-}
-
-func (b baseUrlRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
-	request.Host = b.host
-
-	return b.roundTripper.RoundTrip(request)
-}
-
 func New(deps Deps) Executor {
 	ex := &executor{
 		db:                  deps.Db,
@@ -92,15 +80,10 @@ func New(deps Deps) Executor {
 	}
 
 	for i := 0; i < deps.NumRegions; i++ {
-		url := fmt.Sprintf(deps.RegionUrlTemplate+":%d", i, deps.Port)
-		httpClient := &http.Client{
-			Transport: baseUrlRoundTripper{
-				host:         url,
-				roundTripper: http.DefaultTransport, // TODO customize timeouts
-			},
-		}
-
-		ex.clients[regionId(i)] = worker.NewClient(httpClient)
+		ex.clients[regionId(i)] = worker.NewClient(worker.Deps{
+			HttpClient: http.DefaultClient, // TODO customize timeouts,
+			Url:        fmt.Sprintf(deps.RegionUrlTemplate+":%d", i, deps.Port),
+		})
 	}
 
 	return ex
