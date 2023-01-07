@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/executor"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/server"
@@ -10,6 +11,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 )
 
 func getPortFromEnv(envName string) int {
@@ -61,7 +63,9 @@ func main() {
 	}
 	srv := server.New(serverDeps)
 
-	if err := srv.Run(); err != nil {
+	ctx, can := context.WithTimeout(context.Background(), 15*time.Second)
+	defer can()
+	if err := srv.Run(ctx); err != nil {
 		log.Fatal("Error while running server,", err)
 	}
 }

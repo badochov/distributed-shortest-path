@@ -53,8 +53,13 @@ func (e *executor) GetGeneration() (resp api.GetGenerationResponse, code int, er
 	return api.GetGenerationResponse{Generation: e.generation}, http.StatusOK, nil
 }
 
-func (e *executor) Run() error {
-	return nil
+func (e *executor) Run(ctx context.Context) (err error) {
+	e.generation, err = e.getGen(ctx)
+	if err != nil {
+		return
+	}
+	e.nextGeneration, err = e.getNextGen(ctx)
+	return
 }
 
 func (e *executor) getRegion(id db.VertexId) (db.RegionId, error) {
@@ -138,6 +143,7 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 	defer can()
 
 	wrap := func(err error) (api.RecalculateDsResponse, int, error) {
+		// TODO remove nextGen info in case of a failure.
 		return api.RecalculateDsResponse{}, http.StatusInternalServerError, err
 	}
 
@@ -150,6 +156,12 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 	if err := e.calculateArcFlags(ctx); err != nil {
 		return wrap(err)
 	}
+	if err := e.setGenToNext(ctx); err != nil {
+		return wrap(err)
+	}
+	if err := e.deleteNextGen(ctx); err != nil {
+		return wrap(err)
+	}
 
 	return api.RecalculateDsResponse{}, http.StatusOK, nil
 }
@@ -158,7 +170,7 @@ func (e *executor) incNextGen(ctx context.Context) (err error) {
 	ctx, can := context.WithTimeout(ctx, time.Second)
 	defer can()
 
-	// TODO Think if retires should be implemented and how.
+	// TODO Think if retries should be implemented and how.
 	if err := e.db.SetNextGeneration(ctx, e.nextGeneration+1); err != nil {
 		return err
 	}
@@ -167,11 +179,52 @@ func (e *executor) incNextGen(ctx context.Context) (err error) {
 	return nil
 }
 
+func (e *executor) getNextGen(ctx context.Context) (generation, error) {
+	ctx, can := context.WithTimeout(ctx, time.Second)
+	defer can()
+
+	// TODO Think if retries should be implemented and how.
+	return e.db.GetNextGeneration(ctx)
+}
+
+func (e *executor) getGen(ctx context.Context) (generation, error) {
+	ctx, can := context.WithTimeout(ctx, time.Second)
+	defer can()
+
+	// TODO Think if retries should be implemented and how.
+	return e.db.GetCurrentGeneration(ctx)
+}
+
+func (e *executor) setGenToNext(ctx context.Context) (err error) {
+	ctx, can := context.WithTimeout(ctx, time.Second)
+	defer can()
+
+	// TODO Think if retries should be implemented and how.
+	if err := e.db.SetCurrentGeneration(ctx, e.nextGeneration); err != nil {
+		return err
+	}
+
+	e.generation = e.nextGeneration
+	return nil
+}
+
+func (e *executor) deleteNextGen(ctx context.Context) (err error) {
+	ctx, can := context.WithTimeout(ctx, time.Second)
+	defer can()
+
+	// TODO Think if retries should be implemented and how.
+	if err := e.db.DeleteNextGeneration(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (e *executor) divideIntoRegions(ctx context.Context) error {
 	ctx, can := context.WithTimeout(ctx, time.Minute)
 	defer can()
 
-	// TODO Think if retires should be implemented and how.
+	// TODO Think if retries should be implemented and how.
 	return e.divideIntoRegionsDoer(ctx, e.nextGeneration)
 }
 
