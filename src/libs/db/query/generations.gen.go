@@ -30,6 +30,7 @@ func newGeneration(db *gorm.DB, opts ...gen.DOOption) generation {
 	_generation.Generation = field.NewUint16(tableName, "generation")
 	_generation.Current = field.NewBool(tableName, "current")
 	_generation.Next = field.NewBool(tableName, "next")
+	_generation.Active = field.NewBool(tableName, "active")
 
 	_generation.fillFieldMap()
 
@@ -43,6 +44,7 @@ type generation struct {
 	Generation field.Uint16
 	Current    field.Bool
 	Next       field.Bool
+	Active     field.Bool
 
 	fieldMap map[string]field.Expr
 }
@@ -62,6 +64,7 @@ func (g *generation) updateTableName(table string) *generation {
 	g.Generation = field.NewUint16(table, "generation")
 	g.Current = field.NewBool(table, "current")
 	g.Next = field.NewBool(table, "next")
+	g.Active = field.NewBool(table, "active")
 
 	g.fillFieldMap()
 
@@ -86,10 +89,11 @@ func (g *generation) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (g *generation) fillFieldMap() {
-	g.fieldMap = make(map[string]field.Expr, 3)
+	g.fieldMap = make(map[string]field.Expr, 4)
 	g.fieldMap["generation"] = g.Generation
 	g.fieldMap["current"] = g.Current
 	g.fieldMap["next"] = g.Next
+	g.fieldMap["active"] = g.Active
 }
 
 func (g generation) clone(db *gorm.DB) generation {

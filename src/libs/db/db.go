@@ -56,13 +56,13 @@ type DB interface {
 	GetVertexRegion(ctx context.Context, id VertexId, generation Generation) (RegionId, error)
 	GetCurrentGeneration(ctx context.Context) (Generation, error)
 	GetNextGeneration(ctx context.Context) (Generation, error)
+	GetActiveGeneration(ctx context.Context) (Generation, error)
 
 	SetFlag(ctx context.Context, edgeIds []EdgeId, region RegionId, generation Generation) error
 	SetRegion(ctx context.Context, coordsBetween CoordsBetween, region RegionId, generation Generation) (rowsAffected int64, err error)
 	SetCurrentGeneration(ctx context.Context, generation Generation) error
 	SetNextGeneration(ctx context.Context, generation Generation) error
-
-	DeleteNextGeneration(ctx context.Context) error
+	SetActiveGeneration(ctx context.Context, generation Generation) error
 }
 
 type db struct {
@@ -120,6 +120,21 @@ func (d db) SetNextGeneration(ctx context.Context, generation Generation) error 
 	return nil
 }
 
+func (d db) SetActiveGeneration(ctx context.Context, generation Generation) error {
+	g := d.q.Generation
+	c, err := d.q.WithContext(ctx).Generation.Where(g.Active).Update(g.Next, generation)
+	if err != nil {
+		return err
+	}
+	if c.RowsAffected == 0 {
+		return d.q.WithContext(ctx).Generation.Create(&model.Generation{
+			Generation: generation,
+			Active:     true,
+		})
+	}
+	return nil
+}
+
 func (d db) GetCurrentGeneration(ctx context.Context) (Generation, error) {
 	g := d.q.Generation
 	r, err := d.q.WithContext(ctx).Generation.Where(g.Current).Attrs(g.Current, g.Generation.Zero()).FirstOrCreate()
@@ -132,6 +147,15 @@ func (d db) GetCurrentGeneration(ctx context.Context) (Generation, error) {
 func (d db) GetNextGeneration(ctx context.Context) (Generation, error) {
 	g := d.q.Generation
 	r, err := d.q.WithContext(ctx).Generation.Where(g.Next).Attrs(g.Next, g.Generation.Zero()).FirstOrCreate()
+	if err != nil {
+		return 0, err
+	}
+	return r.Generation, nil
+}
+
+func (d db) GetActiveGeneration(ctx context.Context) (Generation, error) {
+	g := d.q.Generation
+	r, err := d.q.WithContext(ctx).Generation.Where(g.Active).Attrs(g.Next, g.Generation.Zero()).FirstOrCreate()
 	if err != nil {
 		return 0, err
 	}

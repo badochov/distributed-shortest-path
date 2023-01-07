@@ -133,7 +133,7 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 
 	wrap := func(err error) (api.RecalculateDsResponse, int, error) {
 		// TODO [wprzytula] handle restart workers on failure.
-		// TODO [wprzytula] handle clean state. (Removing nextGen from DB, etc).
+		// TODO [wprzytula] handle clean state. (Set proper active generation, etc.).
 		return api.RecalculateDsResponse{}, http.StatusInternalServerError, err
 	}
 
@@ -142,6 +142,9 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 		return wrap(err)
 	}
 	if err := e.incNextGen(ctx); err != nil {
+		return wrap(err)
+	}
+	if err := e.setActiveGeneration(ctx, e.nextGeneration); err != nil {
 		return wrap(err)
 	}
 	if err := e.divideIntoRegions(ctx); err != nil {
@@ -156,9 +159,6 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 		return wrap(err)
 	}
 	if err := e.setGenToNext(ctx); err != nil {
-		return wrap(err)
-	}
-	if err := e.deleteNextGen(ctx); err != nil {
 		return wrap(err)
 	}
 	// Restart worker service.
@@ -215,15 +215,14 @@ func (e *executor) setGenToNext(ctx context.Context) (err error) {
 	return nil
 }
 
-func (e *executor) deleteNextGen(ctx context.Context) (err error) {
+func (e *executor) setActiveGeneration(ctx context.Context, gen generation) error {
 	ctx, can := context.WithTimeout(ctx, time.Second)
 	defer can()
 
 	// TODO [wprzytula] Think if retries should be implemented and how.
-	if err := e.db.DeleteNextGeneration(ctx); err != nil {
+	if err := e.db.SetActiveGeneration(ctx, gen); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -284,7 +283,7 @@ func (e *executor) init(ctx context.Context) (err error) {
 	}
 	e.nextGeneration, err = e.getNextGen(ctx)
 	// TODO [wprzytula] handle starting worker service if it was stopped by previous manager who failed.
-	// TODO [wprzytula] handle clean state. (Removing nextGen from DB, etc.).
+	// TODO [wprzytula] handle clean state. (Set proper active generation, etc.).
 	return
 }
 

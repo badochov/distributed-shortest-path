@@ -16,6 +16,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 )
 
 func getPortFromEnv(envName string) int {
@@ -45,14 +46,27 @@ func main() {
 	}
 	d := discoverer.New(discovererDeps)
 
+	regionIdStr := os.Getenv("REGION")
+	regionId, err := strconv.ParseUint(regionIdStr, 10, 16)
+	if err != nil {
+		log.Fatal("can't parser REGION", err)
+	}
 	workerDeps := worker.Deps{
 		Db:         orm,
 		Discoverer: d,
+		RegionID:   uint16(regionId),
+		Context:    context.Background(),
 	}
-	wrkr, err := worker.New(context.Background(), workerDeps)
+	wrkr, err := worker.New(workerDeps)
 	if err != nil {
 		log.Fatalf("error creating worker, %s", err)
 	}
+
+	ctx, can := context.WithTimeout(context.Background(), 3*time.Minute)
+	if err := wrkr.LoadRegionData(ctx); err != nil {
+		log.Fatalf("error loading region data, %s", err)
+	}
+	can()
 
 	execDeps := executor.Deps{
 		Worker: wrkr,

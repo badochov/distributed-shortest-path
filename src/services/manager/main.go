@@ -51,6 +51,9 @@ func getServer(ctx context.Context) (server.Server, error) {
 
 	defaultWorkerReplicasStr := os.Getenv("DEFAULT_WORKER_REPLICAS")
 	defaultWorkerReplicas, err := strconv.ParseInt(defaultWorkerReplicasStr, 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("can't parse default worker replicas")
+	}
 	executorDeps := executor.Deps{
 		NumRegions:            numRegions,
 		RegionUrlTemplate:     os.Getenv("REGION_URL_TEMPLATE"),

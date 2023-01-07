@@ -31,8 +31,8 @@ type RegionData struct {
 }
 
 type Discoverer interface {
-	// InstancesChan returns channel streaming data regarding updates of set of instances.
-	InstancesChan() <-chan RegionData
+	// RegionDataChan returns channel streaming data regarding updates of set of instances.
+	RegionDataChan() <-chan RegionData
 	// InstanceStatuses returns channel streaming data regarding updates of statuses on instances.
 	// Useful for checking health of the worker.
 	InstanceStatuses() <-chan WorkerInstanceStatus
@@ -52,7 +52,7 @@ func (d *discoverer) InstanceStatuses() <-chan WorkerInstanceStatus {
 	return d.statuses
 }
 
-func (d *discoverer) InstancesChan() <-chan RegionData {
+func (d *discoverer) RegionDataChan() <-chan RegionData {
 	return d.ch
 }
 
