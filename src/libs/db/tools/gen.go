@@ -5,9 +5,11 @@ import (
 	"gorm.io/gen"
 )
 
+//go:generate go run gen.go
+
 func main() {
 	g := gen.NewGenerator(gen.Config{
-		OutPath: "./query",
+		OutPath: "../query",
 	})
 
 	g.ApplyBasic(model.Vertex{}, model.Edge{}, model.ArcFlag{}, model.RegionBinding{}, model.Generation{})
