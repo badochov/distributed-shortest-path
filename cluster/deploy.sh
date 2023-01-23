@@ -12,10 +12,6 @@ kubectl apply -f postgres-config.yaml
 kubectl apply -f workers-manager-role.yaml
 
 if [ "$IS_LOCAL" = true ]; then
-  kubectl apply -f query-pv.yaml
-fi
-
-if [ "$IS_LOCAL" = true ]; then
   kubectl apply -f metrics-server.local.yaml
 else
   kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
