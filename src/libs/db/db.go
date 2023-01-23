@@ -4,20 +4,20 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/badochov/distributed-shortest-path/src/libs/api/manager_api"
 	"github.com/badochov/distributed-shortest-path/src/libs/db/conn"
 	"github.com/badochov/distributed-shortest-path/src/libs/db/model"
 	"github.com/badochov/distributed-shortest-path/src/libs/db/query"
+	manager_api2 "github.com/badochov/distributed-shortest-path/src/services/manager/api"
 	"gorm.io/gen"
 	"gorm.io/gorm"
 )
 
-type Vertex = manager_api.Vertex
-type Edge = manager_api.Edge
-type Generation = manager_api.Generation
+type Vertex = manager_api2.Vertex
+type Edge = manager_api2.Edge
+type Generation = manager_api2.Generation
 
-type VertexId = manager_api.VertexId
-type EdgeId = manager_api.EdgeId
+type VertexId = manager_api2.VertexId
+type EdgeId = manager_api2.EdgeId
 
 type ArcFlag uint64
 

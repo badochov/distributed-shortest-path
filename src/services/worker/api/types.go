@@ -1,3 +1,3 @@
-package worker_api
+package api
 
 type VertexId = int64

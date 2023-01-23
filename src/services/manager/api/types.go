@@ -1,4 +1,4 @@
-package manager_api
+package api
 
 type VertexId = int64
 type EdgeId = int64

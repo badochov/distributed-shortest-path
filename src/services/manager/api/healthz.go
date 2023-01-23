@@ -1,4 +1,4 @@
-package manager_api
+package api
 
 const HealthzUrl = "/healthz"
 

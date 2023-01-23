@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
-	api "github.com/badochov/distributed-shortest-path/src/libs/api/worker_api"
+	"github.com/badochov/distributed-shortest-path/src/services/worker/api"
 )
 
 type ShortestPathArgs = api.ShortestPathRequest

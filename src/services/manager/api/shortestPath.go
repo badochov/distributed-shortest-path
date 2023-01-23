@@ -1,4 +1,4 @@
-package worker_api
+package api
 
 const ShortestPathUrl = "/shortest_path"
 

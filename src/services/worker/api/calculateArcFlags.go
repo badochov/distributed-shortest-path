@@ -1,4 +1,4 @@
-package worker_api
+package api
 
 const CalculateArcFlagsUrl = "/calculate_arc_flags"
 

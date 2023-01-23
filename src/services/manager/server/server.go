@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/badochov/distributed-shortest-path/src/libs/api/manager_api"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/executor"
+	manager_api2 "github.com/badochov/distributed-shortest-path/src/services/manager/api"
 	"github.com/gin-gonic/gin"
 )
 
@@ -33,7 +33,7 @@ type handler struct {
 }
 
 func (h *handler) ShortestPath(c *gin.Context) {
-	var req manager_api.ShortestPathRequest
+	var req manager_api2.ShortestPathRequest
 	if err := c.BindJSON(&req); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
@@ -57,7 +57,7 @@ func (h *handler) RecalculateDs(c *gin.Context) {
 }
 
 func (h *handler) AddVertices(c *gin.Context) {
-	var req manager_api.AddVerticesRequest
+	var req manager_api2.AddVerticesRequest
 	if err := c.BindJSON(&req); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
@@ -72,7 +72,7 @@ func (h *handler) AddVertices(c *gin.Context) {
 }
 
 func (h *handler) AddEdges(c *gin.Context) {
-	var req manager_api.AddEdgesRequest
+	var req manager_api2.AddEdgesRequest
 	if err := c.BindJSON(&req); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
@@ -111,16 +111,16 @@ func New(deps Deps) Server {
 		executor: deps.Executor,
 	}
 
-	router.POST(manager_api.ShortestPathUrl, h.ShortestPath)
+	router.POST(manager_api2.ShortestPathUrl, h.ShortestPath)
 
-	router.GET(manager_api.RecalculateDsURL, h.RecalculateDs)
+	router.GET(manager_api2.RecalculateDsURL, h.RecalculateDs)
 
-	router.POST(manager_api.AddVerticesUrl, h.AddVertices)
-	router.POST(manager_api.AddEdgesUrl, h.AddEdges)
+	router.POST(manager_api2.AddVerticesUrl, h.AddVertices)
+	router.POST(manager_api2.AddEdgesUrl, h.AddEdges)
 
-	router.GET(manager_api.GetGenerationUrl, h.GetGeneration)
+	router.GET(manager_api2.GetGenerationUrl, h.GetGeneration)
 
-	router.GET(manager_api.HealthzUrl, h.Healthz)
+	router.GET(manager_api2.HealthzUrl, h.Healthz)
 
 	return &server{
 		engine:  router,

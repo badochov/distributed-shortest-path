@@ -1,4 +1,4 @@
-package manager_api
+package api
 
 const ShortestPathUrl = "/shortest_path"
 

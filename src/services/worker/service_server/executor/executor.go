@@ -3,8 +3,8 @@ package executor
 import (
 	"net/http"
 
-	api "github.com/badochov/distributed-shortest-path/src/libs/api/worker_api"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/common"
+	"github.com/badochov/distributed-shortest-path/src/services/worker/api"
 )
 
 type Deps struct {
