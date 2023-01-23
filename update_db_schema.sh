@@ -2,7 +2,7 @@
 
 cd -P -- "$(dirname -- "$0")" || exit 1
 
-./src/libs/db/tools/new_version.sh
+(cd src/libs/db/ && go generate) || exit 1
 
 kubectl delete pods db-update-schema -n shortest-path
 

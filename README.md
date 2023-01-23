@@ -32,7 +32,12 @@ Project calculating shortest path in a distributed graph.
 ./update_workers.sh <VERSION>
 ```
 
-
+#### DB Schema
+1. Update models in `src/libs/db/model`.
+2. If new models are added adjust the list in `src/libs/db/tools/gen.go`.
+3. ```bash
+    ./update_db_schema.sh
+   ```
 
 
 
