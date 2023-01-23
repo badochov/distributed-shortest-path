@@ -2,9 +2,10 @@ package conn
 
 import (
 	"fmt"
+	"os"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"os"
 )
 
 func Default() (*gorm.DB, error) {

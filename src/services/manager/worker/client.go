@@ -5,8 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	api "github.com/badochov/distributed-shortest-path/src/libs/api/worker_api"
 	"net/http"
+
+	api "github.com/badochov/distributed-shortest-path/src/libs/api/worker_api"
 )
 
 type ShortestPathArgs = api.ShortestPathRequest

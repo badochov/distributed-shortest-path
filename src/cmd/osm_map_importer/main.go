@@ -2,10 +2,11 @@ package main
 
 import (
 	"flag"
-	"github.com/badochov/distributed-shortest-path/src/services/osm_map_importer/client"
-	"github.com/badochov/distributed-shortest-path/src/services/osm_map_importer/parser"
 	"log"
 	"net/http"
+
+	"github.com/badochov/distributed-shortest-path/src/cmd/osm_map_importer/client"
+	"github.com/badochov/distributed-shortest-path/src/cmd/osm_map_importer/parser"
 )
 
 func main() {

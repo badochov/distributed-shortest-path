@@ -3,16 +3,17 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"strconv"
+	"time"
+
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/executor"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/server"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/worker/service_manager"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"log"
-	"os"
-	"strconv"
-	"time"
 )
 
 func getPortFromEnv(envName string) int {

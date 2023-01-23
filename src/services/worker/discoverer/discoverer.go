@@ -2,10 +2,11 @@ package discoverer
 
 import (
 	"context"
+	"strconv"
+
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
-	"strconv"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

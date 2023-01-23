@@ -1,12 +1,13 @@
 package link_server
 
 import (
+	"log"
+	"net"
+
 	"github.com/badochov/distributed-shortest-path/src/services/worker/common"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/link/proto"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"log"
-	"net"
 )
 
 type Worker interface {

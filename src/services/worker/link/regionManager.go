@@ -3,11 +3,12 @@ package link
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"sync"
+
 	"github.com/badochov/distributed-shortest-path/src/services/worker/discoverer"
 	"github.com/hashicorp/go-multierror"
 	"golang.org/x/exp/slices"
-	"math/rand"
-	"sync"
 )
 
 type Address string

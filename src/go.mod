@@ -1,16 +1,20 @@
-module github.com/badochov/distributed-shortest-path/src/services/worker
+module github.com/badochov/distributed-shortest-path/src
 
 go 1.19
 
 require (
-	github.com/badochov/distributed-shortest-path/src/libs/api v0.0.0
-	github.com/badochov/distributed-shortest-path/src/libs/db v0.0.0
 	github.com/gin-gonic/gin v1.8.2
+	github.com/glaslos/go-osm v0.0.0-20170316165313-16aac6148584
 	github.com/hashicorp/go-multierror v1.1.1
 	golang.org/x/exp v0.0.0-20230105202349-8879d0199aa3
 	golang.org/x/net v0.4.0
+	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	google.golang.org/grpc v1.51.0
 	google.golang.org/protobuf v1.28.1
+	gorm.io/driver/postgres v1.4.5
+	gorm.io/gen v0.3.19
+	gorm.io/gorm v1.24.3
+	gorm.io/plugin/dbresolver v1.3.0
 	k8s.io/api v0.26.0
 	k8s.io/apimachinery v0.26.0
 	k8s.io/client-go v0.26.0
@@ -70,20 +74,11 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/datatypes v1.0.7 // indirect
 	gorm.io/driver/mysql v1.4.0 // indirect
-	gorm.io/driver/postgres v1.4.5 // indirect
-	gorm.io/gen v0.3.19 // indirect
-	gorm.io/gorm v1.24.3 // indirect
 	gorm.io/hints v1.1.0 // indirect
-	gorm.io/plugin/dbresolver v1.3.0 // indirect
 	k8s.io/klog/v2 v2.80.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280 // indirect
 	k8s.io/utils v0.0.0-20221107191617-1a15be271d1d // indirect
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
-)
-
-replace (
-	github.com/badochov/distributed-shortest-path/src/libs/api v0.0.0 => ../../libs/api
-	github.com/badochov/distributed-shortest-path/src/libs/db v0.0.0 => ../../libs/db
 )

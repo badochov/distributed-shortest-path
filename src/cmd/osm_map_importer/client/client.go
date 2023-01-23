@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/badochov/distributed-shortest-path/src/libs/api/manager_api"
 	"net/http"
+
+	"github.com/badochov/distributed-shortest-path/src/libs/api/manager_api"
 )
 
 type Edge = manager_api.Edge

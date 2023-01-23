@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"github.com/badochov/distributed-shortest-path/src/services/osm_map_importer/client"
+	"github.com/badochov/distributed-shortest-path/src/cmd/osm_map_importer/client"
 	"github.com/glaslos/go-osm"
 )
 
@@ -23,6 +23,7 @@ func Parse(path string) ([]client.Vertex, []client.Edge, error) {
 	edges := make([]client.Edge, 0, len(data.Ways))
 	for _, w := range data.Ways {
 		currN := w.Nds[0]
+		``
 		for _, n := range w.Nds[1:] {
 			edges = append(edges, client.Edge{
 				From: currN.ID,

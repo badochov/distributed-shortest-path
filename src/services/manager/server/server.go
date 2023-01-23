@@ -2,10 +2,11 @@ package server
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/badochov/distributed-shortest-path/src/libs/api/manager_api"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/executor"
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 type Deps struct {

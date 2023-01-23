@@ -3,15 +3,16 @@ package executor
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"sync"
+	"time"
+
 	api "github.com/badochov/distributed-shortest-path/src/libs/api/manager_api"
 	"github.com/badochov/distributed-shortest-path/src/libs/api/worker_api"
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/worker"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/worker/service_manager"
 	"golang.org/x/sync/errgroup"
-	"net/http"
-	"sync"
-	"time"
 )
 
 // TODO [wprzytula] retries (one implemention of retires is in src/services/manager/worker/service_manager/manager.go)

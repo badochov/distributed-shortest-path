@@ -9,11 +9,11 @@ WORKDIR /go/src
 
 ENV CGO_ENABLED=0
 
-COPY libs /go/src/libs
-COPY services/manager/go.mod services/manager/go.sum services/manager/
-RUN cd services/manager && go mod download
+COPY go.mod go.sum ./
+RUN go mod download
 
-COPY services/manager /go/src/services/manager
+COPY libs /go/src/libs
+COPY . ./
 
 WORKDIR /go/src/services/manager
 

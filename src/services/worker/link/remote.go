@@ -2,6 +2,7 @@ package link
 
 import (
 	"context"
+
 	"github.com/badochov/distributed-shortest-path/src/services/worker/link/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

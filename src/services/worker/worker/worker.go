@@ -2,12 +2,13 @@ package worker
 
 import (
 	"context"
+	"log"
+
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/discoverer"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/link"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/link/link_server"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/service_server/executor"
-	"log"
 )
 
 type Deps struct {
