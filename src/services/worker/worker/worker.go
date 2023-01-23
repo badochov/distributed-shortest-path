@@ -38,7 +38,7 @@ type worker struct {
 	generation db.Generation
 	regionId   db.RegionId
 	data       workerData
-	links      map[int]link.RegionManager
+	links      map[db.RegionId]link.RegionManager
 	linkPort   int
 }
 
@@ -123,6 +123,7 @@ func New(deps Deps) (Worker, error) {
 		discoverer: deps.Discoverer,
 		regionId:   deps.RegionID,
 		linkPort:   deps.LinkPort,
+		links:      make(map[db.RegionId]link.RegionManager),
 	}
 	if err := w.initDiscoverer(deps.Context); err != nil {
 		return nil, err

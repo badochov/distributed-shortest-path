@@ -2,6 +2,7 @@ package discoverer
 
 import (
 	"context"
+	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"strconv"
@@ -30,7 +31,7 @@ type WorkerInstance struct {
 }
 
 type RegionData struct {
-	RegionId  int
+	RegionId  db.RegionId
 	Instances []WorkerInstance
 }
 
@@ -73,7 +74,6 @@ func (d *discoverer) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	//d.client.AppsV1().Deployments().ApplyScale()
 
 	// Endpoints
 	ch := make(chan RegionData)
@@ -83,14 +83,12 @@ func (d *discoverer) Run(ctx context.Context) error {
 		for ev := range endpointWatcher.ResultChan() {
 			endpoints := ev.Object.(*v1.Endpoints)
 
-			var res RegionData
-			var err error
-
 			regStr := endpoints.Labels["region"]
-			res.RegionId, err = strconv.Atoi(regStr)
+			regId, err := strconv.ParseUint(regStr, 10, 16)
 			if err != nil {
 				panic(err)
 			}
+			res := RegionData{RegionId: uint16(regId)}
 
 			for _, subset := range endpoints.Subsets {
 				for _, address := range subset.Addresses {
