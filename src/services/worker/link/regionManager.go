@@ -18,14 +18,14 @@ type RegionManager interface {
 	GetLink() (Address, Link, error)
 }
 
-type regionManger struct {
+type regionDialer struct {
 	rwlock    sync.RWMutex
 	links     map[Address]Link
 	addresses []Address
 	port      int
 }
 
-func (r *regionManger) UpdateInstances(instances []discoverer.WorkerInstance) error {
+func (r *regionDialer) UpdateInstances(instances []discoverer.WorkerInstance) error {
 	r.rwlock.Lock()
 	defer r.rwlock.Unlock()
 
@@ -39,8 +39,7 @@ func (r *regionManger) UpdateInstances(instances []discoverer.WorkerInstance) er
 		a := r.toAddr(i.Ip)
 		l, ok := r.links[a]
 		if ok {
-			delete(r.links, a)
-		} else {
+			delete(r.links, a) // delete existing, because remaining ones are due to be removed
 		}
 		newLinks[a] = l
 	}
@@ -57,7 +56,7 @@ func (r *regionManger) UpdateInstances(instances []discoverer.WorkerInstance) er
 	return err
 }
 
-func (r *regionManger) UpdateInstanceStatus(ctx context.Context, s discoverer.WorkerInstanceStatus) (err error) {
+func (r *regionDialer) UpdateInstanceStatus(ctx context.Context, s discoverer.WorkerInstanceStatus) (err error) {
 	r.rwlock.Lock()
 	defer r.rwlock.Unlock()
 
@@ -84,11 +83,11 @@ func (r *regionManger) UpdateInstanceStatus(ctx context.Context, s discoverer.Wo
 	return
 }
 
-func (r *regionManger) toAddr(ip string) Address {
+func (r *regionDialer) toAddr(ip string) Address {
 	return Address(fmt.Sprintf("%s:%d", ip, r.port))
 }
 
-func (r *regionManger) GetLink() (Address, Link, error) {
+func (r *regionDialer) GetLink() (Address, Link, error) {
 	r.rwlock.RLock()
 	defer r.rwlock.RUnlock()
 
@@ -100,8 +99,8 @@ func (r *regionManger) GetLink() (Address, Link, error) {
 	return addr, r.links[addr], nil
 }
 
-func NewRegionManager(port int) RegionManager {
-	return &regionManger{
+func NewRegionDialer(port int) RegionManager {
+	return &regionDialer{
 		port: port,
 	}
 }
