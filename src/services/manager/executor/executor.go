@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
@@ -51,6 +52,7 @@ type executor struct {
 	workerServerManager   service_manager.WorkerServiceManager
 	recalculateLock       sync.RWMutex
 	defaultWorkerReplicas int32
+	requestId             atomic.Uint64
 }
 
 func (e *executor) GetGeneration() (resp api.GetGenerationResponse, code int, err error) {
@@ -77,10 +79,12 @@ func (e *executor) ShortestPath(req api.ShortestPathRequest) (resp api.ShortestP
 	if err != nil {
 		return api.ShortestPathResponse{}, http.StatusInternalServerError, err
 	}
+	reqId := e.genReqId()
 
 	workerReq := workerApi.ShortestPathRequest{
-		From: req.From,
-		To:   req.To,
+		RequestId: reqId,
+		From:      req.From,
+		To:        req.To,
 	}
 
 	// TODO [wprzytula] Think if retries should be implemented and how.
@@ -286,6 +290,10 @@ func (e *executor) init(ctx context.Context) (err error) {
 	// TODO [wprzytula] handle starting worker service if it was stopped by previous manager who failed.
 	// TODO [wprzytula] handle clean state. (Set proper active generation, etc.).
 	return
+}
+
+func (e *executor) genReqId() workerApi.RequestId {
+	return workerApi.RequestId(e.requestId.Add(1))
 }
 
 func timeoutCtx(duration time.Duration) (context.Context, context.CancelFunc) {
