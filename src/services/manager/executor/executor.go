@@ -11,7 +11,7 @@ import (
 	"github.com/badochov/distributed-shortest-path/src/services/manager/api"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/worker"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/worker/service_manager"
-	"github.com/badochov/distributed-shortest-path/src/services/worker/api"
+	workerApi "github.com/badochov/distributed-shortest-path/src/services/worker/api"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -78,7 +78,7 @@ func (e *executor) ShortestPath(req api.ShortestPathRequest) (resp api.ShortestP
 		return api.ShortestPathResponse{}, http.StatusInternalServerError, err
 	}
 
-	workerReq := api.ShortestPathRequest{
+	workerReq := workerApi.ShortestPathRequest{
 		From: req.From,
 		To:   req.To,
 	}

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/badochov/distributed-shortest-path/src/services/worker/api"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/common"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/service_server/executor"
-	"github.com/badochov/distributed-shortest-path/src/services/worker/api"
 	"github.com/gin-gonic/gin"
 )
 
