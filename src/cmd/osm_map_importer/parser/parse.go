@@ -23,7 +23,7 @@ func Parse(path string) ([]client.Vertex, []client.Edge, error) {
 	edges := make([]client.Edge, 0, len(data.Ways))
 	for _, w := range data.Ways {
 		currN := w.Nds[0]
-		``
+
 		for _, n := range w.Nds[1:] {
 			edges = append(edges, client.Edge{
 				From: currN.ID,
