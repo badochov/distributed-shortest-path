@@ -90,7 +90,7 @@ func (w *worker) initDiscoverer(ctx context.Context) error {
 			w.handleInstanceStatus(status)
 		// set of workers in region has changed
 		case data := <-w.discoverer.RegionDataChan():
-			w.handleRegionData(data)
+			w.handleRegionData(ctx, data)
 		case <-ctx.Done():
 			return
 		}
@@ -106,12 +106,12 @@ func (w *worker) handleInstanceStatus(status discoverer.WorkerInstanceStatus) {
 	// TODO [wprzytula]
 }
 
-func (w *worker) handleRegionData(data discoverer.RegionData) {
+func (w *worker) handleRegionData(ctx context.Context, data discoverer.RegionData) {
 	l, ok := w.links[data.RegionId]
 	if !ok {
 		l = link.NewRegionDialer(w.linkPort)
 	}
-	err := l.UpdateInstances(data.Instances)
+	err := l.UpdateInstances(ctx, data.Instances)
 	if err != nil {
 		log.Print(err)
 	}

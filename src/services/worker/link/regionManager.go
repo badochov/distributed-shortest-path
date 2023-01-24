@@ -14,7 +14,7 @@ import (
 type Address string
 
 type RegionManager interface {
-	UpdateInstances(instances []discoverer.WorkerInstance) error
+	UpdateInstances(ctx context.Context, instances []discoverer.WorkerInstance) error
 	GetLink() (Address, Link, error)
 }
 
@@ -25,7 +25,7 @@ type regionDialer struct {
 	port      int
 }
 
-func (r *regionDialer) UpdateInstances(instances []discoverer.WorkerInstance) error {
+func (r *regionDialer) UpdateInstances(ctx context.Context, instances []discoverer.WorkerInstance) error {
 	r.rwlock.Lock()
 	defer r.rwlock.Unlock()
 
@@ -34,17 +34,23 @@ func (r *regionDialer) UpdateInstances(instances []discoverer.WorkerInstance) er
 		r.addresses = append(r.addresses, r.toAddr(i.Ip))
 	}
 
+	var err error
+
 	newLinks := make(map[Address]Link, len(instances))
 	for _, i := range instances {
 		a := r.toAddr(i.Ip)
 		l, ok := r.links[a]
 		if ok {
 			delete(r.links, a) // delete existing, because remaining ones are due to be removed
+		} else {
+			l, err = New(ctx, i.Ip)
+			if err != nil {
+				err = multierror.Append(err, fmt.Errorf("error opening link to %s, %w", a, err))
+			}
 		}
 		newLinks[a] = l
 	}
 
-	var err error
 	// Close no longer existing links
 	for a, l := range r.links {
 		if closeErr := l.Close(); closeErr != nil {
