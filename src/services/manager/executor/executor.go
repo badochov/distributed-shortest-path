@@ -116,8 +116,8 @@ func (e *executor) AddVertices(req api.AddVerticesRequest) (resp api.AddVertices
 	}
 	defer e.finish()
 
-	ctx, can := timeoutCtx(15 * time.Second)
-	defer can()
+	ctx, cancel := timeoutCtx(15 * time.Second)
+	defer cancel()
 
 	if err := e.db.AddVertices(ctx, req.Vertices, e.generation); err != nil {
 		return api.AddVerticesResponse{}, http.StatusInternalServerError, err
