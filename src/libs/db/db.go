@@ -313,7 +313,7 @@ func (d db) AddArcFlags(ctx context.Context, edgeIds []EdgeId, generation Genera
 }
 
 func Connect(con *gorm.DB) (DB, error) {
-	if err := con.AutoMigrate(model.ArcFlag{}, model.Vertex{}, model.Edge{}, model.RegionBinding{}, model.Generation{}); err != nil {
+	if err := con.AutoMigrate(model.List...); err != nil {
 		return nil, err
 	}
 

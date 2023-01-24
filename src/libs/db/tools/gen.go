@@ -12,7 +12,7 @@ func main() {
 		OutPath: "../query",
 	})
 
-	g.ApplyBasic(model.Vertex{}, model.Edge{}, model.ArcFlag{}, model.RegionBinding{}, model.Generation{})
+	g.ApplyBasic(model.List...)
 
 	g.Execute()
 }

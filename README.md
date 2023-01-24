@@ -34,10 +34,16 @@ Project calculating shortest path in a distributed graph.
 
 #### DB Schema
 1. Update models in `src/libs/db/model`.
-2. If new models are added adjust the list in `src/libs/db/tools/gen.go`.
+2. If new models are added adjust the list in `src/libs/db/models/list.go`.
 3. ```bash
-    ./update_db_schema.sh
+    (cd src && go generate)
    ```
+
+#### GRPC proto
+1. Update grpc proto in `src/services/worker/link/proto/link.proto`.
+2. ```bash
+    (cd src && go generate)
+    ```
 
 
 
