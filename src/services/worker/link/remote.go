@@ -13,6 +13,7 @@ func (l *remoteLink) Close() error {
 }
 
 func (l *remoteLink) Add(ctx context.Context, a, b int32) (int32, error) {
+	// TODO [wp] think about retries.
 	resp, err := l.client.Add(ctx, &proto.AddRequest{A: a, B: b})
 	if err != nil {
 		return 0, err
