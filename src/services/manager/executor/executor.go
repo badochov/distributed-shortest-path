@@ -72,7 +72,7 @@ func (e *executor) ShortestPath(req api.ShortestPathRequest) (resp api.ShortestP
 	}
 	defer e.finish()
 
-	ctx, can := timeoutCtx(30 * time.Second)
+	ctx, can := timeoutCtx(30 * time.Second) // TODO[wprzytula] why? how much?
 	defer can()
 
 	regId, err := e.getRegion(req.From)
@@ -147,12 +147,12 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 		return wrap(err)
 	}
 	if err := e.incNextGen(ctx); err != nil {
+		return wrap(err) // TODO[wprzytula]: consider inc iff not yet incremented
+	}
+	if err := e.divideIntoRegions(ctx); err != nil {
 		return wrap(err)
 	}
 	if err := e.setActiveGeneration(ctx, e.nextGeneration); err != nil {
-		return wrap(err)
-	}
-	if err := e.divideIntoRegions(ctx); err != nil {
 		return wrap(err)
 	}
 	// Start worker service.
@@ -260,7 +260,7 @@ func (e *executor) Healthz() (resp api.HealthzResponse, code int, err error) {
 }
 
 func (e *executor) calculateArcFlags(baseCtx context.Context) error {
-	ctx, can := context.WithTimeout(baseCtx, 8*time.Minute)
+	ctx, can := context.WithTimeout(baseCtx, 8*time.Minute) // TODO[wprzytula]
 	defer can()
 
 	grp, grpCtx := errgroup.WithContext(ctx)
