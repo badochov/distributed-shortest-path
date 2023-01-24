@@ -31,6 +31,7 @@ type workerData struct {
 	vertices []db.VertexId
 	edges    []db.Edge
 	arcFlags []db.ArcFlag
+	// TODO [wp] Add info about regions of neighbouring edges
 }
 
 type worker struct {
