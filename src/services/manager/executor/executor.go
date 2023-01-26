@@ -13,7 +13,7 @@ import (
 	"github.com/badochov/distributed-shortest-path/src/services/manager/worker"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/worker/service_manager"
 	workerApi "github.com/badochov/distributed-shortest-path/src/services/worker/api"
-	"github.com/hashicorp/go-multierror"
+	"github.com/cenkalti/backoff/v4"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -179,13 +179,16 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 	return api.RecalculateDsResponse{}, http.StatusOK, nil
 }
 
-func (e *executor) rescaleAllRegions(ctx context.Context, replicas int32) (err error) {
+func (e *executor) rescaleAllRegions(ctx context.Context, replicas int32) error {
+	// TODO [wprzytula] fix state where one of the regions didn't rescale properly.
+	errgrp, ctx := errgroup.WithContext(ctx)
 	for id := range e.clients {
-		if rescaleErr := e.workerServerManager.Rescale(ctx, id, replicas); rescaleErr != nil {
-			err = multierror.Append(err, rescaleErr)
-		}
+		errgrp.Go(func() error {
+			expBackoff := backoff.NewExponentialBackOff() // TODO [wprzytula] customize timeouts.
+			return backoff.Retry(func() error { return e.workerServerManager.Rescale(ctx, id, replicas) }, expBackoff)
+		})
 	}
-	return err
+	return errgrp.Wait()
 }
 
 func (e *executor) incNextGen(ctx context.Context) (err error) {

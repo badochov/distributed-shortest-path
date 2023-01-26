@@ -3,6 +3,7 @@ module github.com/badochov/distributed-shortest-path/src
 go 1.19
 
 require (
+	github.com/cenkalti/backoff/v4 v4.2.0
 	github.com/gin-gonic/gin v1.8.2
 	github.com/glaslos/go-osm v0.0.0-20170316165313-16aac6148584
 	github.com/hashicorp/go-multierror v1.1.1
