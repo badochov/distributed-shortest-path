@@ -182,8 +182,17 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 	return api.RecalculateDsResponse{}, http.StatusOK, nil
 }
 
+// Attempts to rescale all regions to given number of replicas.
+// If any of the regions can't be rescaled and the requested number of replicas is greater than 0,
+// then all regions are attempted to be rescaled to 0 for the sake of coherence.
 func (e *executor) rescaleAllRegions(ctx context.Context, replicas int32) error {
 	// TODO [wprzytula] fix state where one of the regions didn't rescale properly.
+
+	// IMO, there is no good option to do when we cannot scale.
+	// The best idea I have come up with is to at least try to make the situation consistent
+	// by attempting to rescale all regions to 0. This should (?) be less problematic than
+	// rescaling to some positive value.
+
 	errgrp, ctx := errgroup.WithContext(ctx)
 	for id := range e.clients {
 		errgrp.Go(func() error {
@@ -191,7 +200,16 @@ func (e *executor) rescaleAllRegions(ctx context.Context, replicas int32) error 
 			return backoff.Retry(func() error { return e.workerServerManager.Rescale(ctx, id, replicas) }, expBackoff)
 		})
 	}
-	return errgrp.Wait()
+	err := errgrp.Wait()
+	if err != nil {
+		// attempt to make the state consistent by rescaling all regions to 0
+		if replicas > 0 { // only then makes sense
+			for id := range e.clients {
+				e.workerServerManager.Rescale(ctx, id, 0)
+			}
+		}
+	}
+	return err
 }
 
 func (e *executor) incNextGen(ctx context.Context) (err error) {
