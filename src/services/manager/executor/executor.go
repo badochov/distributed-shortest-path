@@ -147,9 +147,12 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 	if err := e.rescaleAllRegions(ctx, 0); err != nil {
 		return wrap(err)
 	}
-	if err := e.incNextGen(ctx); err != nil {
-		return wrap(err) // TODO[wprzytula]: consider inc iff not yet incremented
+	if e.nextGeneration == e.generation { // We inc iff not yet inc'ed. Reason: save already done work.
+		if err := e.incNextGen(ctx); err != nil {
+			return wrap(err)
+		}
 	}
+
 	if err := e.divideIntoRegions(ctx); err != nil {
 		return wrap(err)
 	}
