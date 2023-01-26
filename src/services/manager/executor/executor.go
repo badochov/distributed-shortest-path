@@ -13,6 +13,7 @@ import (
 	"github.com/badochov/distributed-shortest-path/src/services/manager/worker"
 	"github.com/badochov/distributed-shortest-path/src/services/manager/worker/service_manager"
 	workerApi "github.com/badochov/distributed-shortest-path/src/services/worker/api"
+	"github.com/hashicorp/go-multierror"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -143,7 +144,7 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 	}
 
 	// Shutdown worker service.
-	if err := e.workerServerManager.Rescale(ctx, 0); err != nil {
+	if err := e.rescaleAllRegions(ctx, 0); err != nil {
 		return wrap(err)
 	}
 	if err := e.incNextGen(ctx); err != nil {
@@ -156,7 +157,7 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 		return wrap(err)
 	}
 	// Start worker service.
-	if err := e.workerServerManager.Rescale(ctx, e.defaultWorkerReplicas); err != nil {
+	if err := e.rescaleAllRegions(ctx, e.defaultWorkerReplicas); err != nil {
 		return wrap(err)
 	}
 	// TODO [wprzytula] wait for workers to be alive (eg. Add Healthz method to client and wait for it to respond with success)
@@ -167,15 +168,24 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 		return wrap(err)
 	}
 	// Restart worker service.
-	if err := e.workerServerManager.Rescale(ctx, 0); err != nil {
+	if err := e.rescaleAllRegions(ctx, 0); err != nil {
 		return wrap(err)
 	}
-	if err := e.workerServerManager.Rescale(ctx, e.defaultWorkerReplicas); err != nil {
+	if err := e.rescaleAllRegions(ctx, e.defaultWorkerReplicas); err != nil {
 		return wrap(err)
 	}
 	// TODO [wprzytula] wait for workers to be alive (eg. Add Healthz method to client and wait for it to respond with success)
 
 	return api.RecalculateDsResponse{}, http.StatusOK, nil
+}
+
+func (e *executor) rescaleAllRegions(ctx context.Context, replicas int32) (err error) {
+	for id := range e.clients {
+		if rescaleErr := e.workerServerManager.Rescale(ctx, id, replicas); rescaleErr != nil {
+			err = multierror.Append(err, rescaleErr)
+		}
+	}
+	return err
 }
 
 func (e *executor) incNextGen(ctx context.Context) (err error) {
