@@ -203,6 +203,7 @@ func (d db) GetVertexRegion(ctx context.Context, id VertexId, generation Generat
 func (d db) SetRegion(ctx context.Context, c CoordsBetween, region RegionId, generation Generation) (int64, error) {
 	// TODO [badochov] This function should take right-open interval of coordinates [a, b) as an argument
 	// and set region of all the vertices within this interval
+	// EDIT [wprzytula] done
 	v := d.q.Vertex
 	const batchSize = 1024
 
@@ -211,22 +212,25 @@ func (d db) SetRegion(ctx context.Context, c CoordsBetween, region RegionId, gen
 
 	err := d.q.WithContext(ctx).Vertex.Where(
 		v.Generation.Eq(generation),
-		v.Latitude.Between(c.Latitude.Min, c.Latitude.Max),
-		v.Latitude.Between(c.Longitude.Min, c.Longitude.Max),
-	).FindInBatches(&results, batchSize, func(_ gen.Dao, _ int) error {
-		rows := len(results)
-		rowsAffected += int64(rows)
+		v.Latitude.Gte(c.Latitude.Min),
+		v.Latitude.Lt(c.Latitude.Max),
+		v.Longitude.Gte(c.Longitude.Min),
+		v.Longitude.Lt(c.Longitude.Max),
+	).Join(d.q.RegionBinding, d.q.RegionBinding.VertexID.EqCol(v.ID)).
+		FindInBatches(&results, batchSize, func(_ gen.Dao, _ int) error {
+			rows := len(results)
+			rowsAffected += int64(rows)
 
-		rbs := make([]*model.RegionBinding, 0, rows)
-		for _, r := range results {
-			rbs = append(rbs, &model.RegionBinding{
-				VertexID:   r.ID,
-				Region:     region,
-				Generation: generation,
-			})
-		}
-		return d.q.WithContext(ctx).RegionBinding.Create(rbs...)
-	})
+			rbs := make([]*model.RegionBinding, 0, rows)
+			for _, r := range results {
+				rbs = append(rbs, &model.RegionBinding{
+					VertexID:   r.ID,
+					Region:     region,
+					Generation: generation,
+				})
+			}
+			return d.q.WithContext(ctx).RegionBinding.Create(rbs...)
+		})
 
 	return rowsAffected, err
 }
