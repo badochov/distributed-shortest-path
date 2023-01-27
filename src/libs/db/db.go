@@ -58,6 +58,7 @@ type DB interface {
 	GetCurrentGeneration(ctx context.Context) (Generation, error)
 	GetNextGeneration(ctx context.Context) (Generation, error)
 	GetActiveGeneration(ctx context.Context) (Generation, error)
+	GetCoordsBounds(ctx context.Context) (CoordsBetween, error)
 
 	SetFlag(ctx context.Context, edgeIds []EdgeId, region RegionId, generation Generation) error
 	SetRegion(ctx context.Context, coordsBetween CoordsBetween, region RegionId, generation Generation) (rowsAffected int64, err error)
@@ -163,6 +164,51 @@ func (d db) GetActiveGeneration(ctx context.Context) (Generation, error) {
 	return r.Generation, nil
 }
 
+func (d db) GetCoordsBounds(ctx context.Context, generation Generation) (CoordsBetween, error) {
+	// TODO [badochov] This funcion should return right-open interval [a, b)
+	// including coordinates of all the vertices
+
+	v := d.q.Vertex
+	min_latitude, err := d.q.WithContext(ctx).Vertex.Where(
+		v.Generation.Eq(generation),
+	).Select(v.Latitude.Min()).First()
+	if err != nil {
+		return CoordsBetween{}, err
+	}
+
+	max_latitude, err := d.q.WithContext(ctx).Vertex.Where(
+		v.Generation.Eq(generation),
+	).Select(v.Latitude.Max()).First()
+	if err != nil {
+		return CoordsBetween{}, err
+	}
+
+	min_longitude, err := d.q.WithContext(ctx).Vertex.Where(
+		v.Generation.Eq(generation),
+	).Select(v.Longitude.Min()).First()
+	if err != nil {
+		return CoordsBetween{}, err
+	}
+
+	max_longitude, err := d.q.WithContext(ctx).Vertex.Where(
+		v.Generation.Eq(generation),
+	).Select(v.Longitude.Min()).First()
+	if err != nil {
+		return CoordsBetween{}, err
+	}
+
+	return CoordsBetween{
+		Latitude: MinMax{
+			Min: min_latitude.Latitude,
+			Max: max_latitude.Latitude,
+		},
+		Longitude: MinMax{
+			Min: min_longitude.Longitude,
+			Max: max_longitude.Longitude,
+		},
+	}, nil
+}
+
 func (d db) SetCurrentGeneration(ctx context.Context, generation Generation) error {
 	g := d.q.Generation
 	c, err := d.q.WithContext(ctx).Generation.Where(g.Current).Update(g.Current, generation)
@@ -194,6 +240,8 @@ func (d db) GetVertexRegion(ctx context.Context, id VertexId, generation Generat
 }
 
 func (d db) SetRegion(ctx context.Context, c CoordsBetween, region RegionId, generation Generation) (int64, error) {
+	// TODO [badochov] This function should take right-open interval of coordinates [a, b) as an argument
+	// and set region of all the vertices within this interval
 	v := d.q.Vertex
 	const batchSize = 1024
 
