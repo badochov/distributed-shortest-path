@@ -37,10 +37,10 @@ func (af ArcFlag) getSelector(id RegionId) ArcFlag {
 
 type MinMax struct {
 	Min float64 // Inclusive
-	Max float64 // Inclusive
+	Max float64 // Exclusive
 }
 
-type CoordsBetween struct {
+type CoordBounds struct {
 	Latitude  MinMax
 	Longitude MinMax
 }
@@ -53,7 +53,7 @@ type DB interface {
 	GetVertexIds(ctx context.Context, id RegionId, generation Generation) ([]VertexId, error)
 	GetEdgesFrom(ctx context.Context, from []VertexId, generation Generation) ([]Edge, error)
 	GetArcFlags(ctx context.Context, edgeIds []EdgeId, generation Generation) ([]ArcFlag, error)
-	GetVertexCount(ctx context.Context, coordsBetween CoordsBetween, generation Generation) (int64, error)
+	GetVertexCount(ctx context.Context, coordsBetween CoordBounds, generation Generation) (int64, error)
 	GetVertexRegion(ctx context.Context, id VertexId, generation Generation) (RegionId, error)
 	GetCurrentGeneration(ctx context.Context) (Generation, error)
 	GetNextGeneration(ctx context.Context) (Generation, error)
@@ -61,7 +61,7 @@ type DB interface {
 	GetCoordsBounds(ctx context.Context) (CoordsBetween, error)
 
 	SetFlag(ctx context.Context, edgeIds []EdgeId, region RegionId, generation Generation) error
-	SetRegion(ctx context.Context, coordsBetween CoordsBetween, region RegionId, generation Generation) (rowsAffected int64, err error)
+	SetRegion(ctx context.Context, coordsBetween CoordBounds, region RegionId, generation Generation) (rowsAffected int64, err error)
 	SetCurrentGeneration(ctx context.Context, generation Generation) error
 	SetNextGeneration(ctx context.Context, generation Generation) error
 	SetActiveGeneration(ctx context.Context, generation Generation) error
@@ -239,9 +239,7 @@ func (d db) GetVertexRegion(ctx context.Context, id VertexId, generation Generat
 	return r.Region, nil
 }
 
-func (d db) SetRegion(ctx context.Context, c CoordsBetween, region RegionId, generation Generation) (int64, error) {
-	// TODO [badochov] This function should take right-open interval of coordinates [a, b) as an argument
-	// and set region of all the vertices within this interval
+func (d db) SetRegion(ctx context.Context, c CoordBounds, region RegionId, generation Generation) (int64, error) {
 	v := d.q.Vertex
 	const batchSize = 1024
 
@@ -250,8 +248,10 @@ func (d db) SetRegion(ctx context.Context, c CoordsBetween, region RegionId, gen
 
 	err := d.q.WithContext(ctx).Vertex.Where(
 		v.Generation.Eq(generation),
-		v.Latitude.Between(c.Latitude.Min, c.Latitude.Max),
-		v.Latitude.Between(c.Longitude.Min, c.Longitude.Max),
+		v.Latitude.Gte(c.Latitude.Min),
+		v.Latitude.Lt(c.Latitude.Max),
+		v.Longitude.Gte(c.Longitude.Min),
+		v.Longitude.Lt(c.Longitude.Max),
 	).FindInBatches(&results, batchSize, func(_ gen.Dao, _ int) error {
 		rows := len(results)
 		rowsAffected += int64(rows)
@@ -270,12 +270,14 @@ func (d db) SetRegion(ctx context.Context, c CoordsBetween, region RegionId, gen
 	return rowsAffected, err
 }
 
-func (d db) GetVertexCount(ctx context.Context, c CoordsBetween, generation Generation) (int64, error) {
+func (d db) GetVertexCount(ctx context.Context, c CoordBounds, generation Generation) (int64, error) {
 	v := d.q.Vertex
 	return d.q.WithContext(ctx).Vertex.Where(
 		v.Generation.Eq(generation),
-		v.Latitude.Between(c.Latitude.Min, c.Latitude.Max),
-		v.Latitude.Between(c.Longitude.Min, c.Longitude.Max),
+		v.Latitude.Gte(c.Latitude.Min),
+		v.Latitude.Lt(c.Latitude.Max),
+		v.Longitude.Gte(c.Longitude.Min),
+		v.Longitude.Lt(c.Longitude.Max),
 	).Count()
 }
 
