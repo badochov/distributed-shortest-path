@@ -252,9 +252,124 @@ func (e *executor) divideIntoRegions(ctx context.Context) error {
 	return e.divideIntoRegionsDoer(ctx)
 }
 
+func (e *executor) divideIntoRegionsHelper(ctx context.Context, coordsBetween db.CoordsBetween,
+	count int64, minRegionId db.RegionId, maxRegionId db.RegionId, direction bool) error {
+	var err error
+	if minRegionId == maxRegionId {
+		_, err := e.db.SetRegion(ctx, coordsBetween, minRegionId, e.generation)
+		return err
+	}
+	if direction {
+		left, right := coordsBetween.Longitude.Min, coordsBetween.Longitude.Max
+		mid := (left + right) / 2
+		var leftPart, rightPart, midPart int64
+		for {
+			midPart, err = e.db.GetVertexCount(ctx,
+				db.CoordsBetween{
+					Latitude:  coordsBetween.Latitude,
+					Longitude: db.MinMax{Min: mid, Max: mid},
+				},
+				e.generation)
+			if err != nil {
+				return err
+			}
+			leftPart, err = e.db.GetVertexCount(ctx,
+				db.CoordsBetween{
+					Latitude:  coordsBetween.Latitude,
+					Longitude: db.MinMax{Min: coordsBetween.Longitude.Min, Max: mid},
+				},
+				e.generation)
+			if err != nil {
+				return err
+			}
+			leftPart = leftPart - midPart
+			rightPart = count - leftPart // including midPart
+			if leftPart > rightPart {
+				right = mid
+			} else if leftPart+midPart > rightPart-midPart {
+				break
+			} else {
+				left = mid
+			}
+			mid = (left + right) / 2
+		}
+		err = e.divideIntoRegionsHelper(ctx,
+			db.CoordsBetween{
+				Latitude:  coordsBetween.Latitude,
+				Longitude: db.MinMax{Min: coordsBetween.Longitude.Min, Max: mid},
+			},
+			leftPart, minRegionId, (minRegionId+maxRegionId)/2, false)
+		if err != nil {
+			return err
+		}
+		return e.divideIntoRegionsHelper(ctx,
+			db.CoordsBetween{
+				Latitude:  coordsBetween.Latitude,
+				Longitude: db.MinMax{Min: mid, Max: coordsBetween.Longitude.Max}},
+			rightPart, (minRegionId+maxRegionId)/2+1, maxRegionId, false)
+	} else {
+		down, up := coordsBetween.Latitude.Min, coordsBetween.Latitude.Max
+		mid := (down + up) / 2
+		var downPart, upPart, midPart int64
+		var err error
+		for {
+			midPart, err = e.db.GetVertexCount(ctx,
+				db.CoordsBetween{
+					Latitude:  db.MinMax{Min: mid, Max: mid},
+					Longitude: coordsBetween.Longitude,
+				},
+				e.generation)
+			if err != nil {
+				return err
+			}
+			downPart, err = e.db.GetVertexCount(ctx,
+				db.CoordsBetween{
+					Latitude:  db.MinMax{Min: coordsBetween.Latitude.Min, Max: mid},
+					Longitude: coordsBetween.Longitude,
+				},
+				e.generation)
+			if err != nil {
+				return err
+			}
+			downPart = downPart - midPart
+			upPart = count - downPart // including midPart
+			if downPart > upPart {
+				up = mid
+			} else if downPart+midPart > upPart-midPart {
+				break
+			} else {
+				down = mid
+			}
+			mid = (down + up) / 2
+		}
+		err = e.divideIntoRegionsHelper(ctx,
+			db.CoordsBetween{
+				Latitude:  db.MinMax{Min: coordsBetween.Latitude.Min, Max: mid},
+				Longitude: coordsBetween.Longitude,
+			},
+			downPart, minRegionId, (minRegionId+maxRegionId)/2, true)
+		if err != nil {
+			return err
+		}
+		return e.divideIntoRegionsHelper(ctx,
+			db.CoordsBetween{
+				Latitude:  db.MinMax{Min: mid, Max: coordsBetween.Latitude.Max},
+				Longitude: coordsBetween.Longitude,
+			},
+			upPart, (minRegionId+maxRegionId)/2+1, maxRegionId, true)
+	}
+}
+
 func (e *executor) divideIntoRegionsDoer(ctx context.Context) error {
-	// TODO [kdrabik] Implement me
-	panic("Implement me")
+	bounds, err := e.db.GetCoordsBounds(ctx)
+	if err != nil {
+		return err
+	}
+	count, err := e.db.GetVertexCount(ctx, bounds, e.generation)
+	if err != nil {
+		return err
+	}
+	return e.divideIntoRegionsHelper(ctx, bounds, count, 0, regionId(len(e.clients)-1), true)
 }
 
 func (e *executor) start() error {
