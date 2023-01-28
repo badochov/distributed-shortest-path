@@ -195,6 +195,15 @@ func (d db) GetVertexRegion(ctx context.Context, id VertexId, generation Generat
 	return r.Region, nil
 }
 
+/*
+Intended query:
+SELECT e.*, rb2.Region
+FROM
+RegionBinding AS rb1
+JOIN Edge AS e ON rb1.VertexID = e.FromId
+JOIN RegionBinding AS rb2 ON e.ToId = rb2.VertexID
+WHERE rb1.Region = `regionId`
+*/
 func (d db) GetEdgeToRegionMapping(ctx context.Context, regionId RegionId, generation Generation) (map[EdgeId]RegionId, error) {
 	rb := d.q.RegionBinding
 	rb2 := rb.As("rb2")
