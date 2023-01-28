@@ -304,7 +304,7 @@ func (d db) AddVertices(ctx context.Context, vertices []Vertex, generation Gener
 		vs = append(vs, &model.Vertex{
 			ID:         v.Id,
 			Latitude:   v.Latitude,
-			Longitude:  v.Latitude,
+			Longitude:  v.Longitude,
 			Generation: generation,
 		})
 	}

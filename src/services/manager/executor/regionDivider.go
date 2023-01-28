@@ -19,11 +19,12 @@ func (rd *regionDivider) doDivideIntoRegions(ctx context.Context, coordsBetween 
 	}
 	if vertical {
 		left, right := coordsBetween.Longitude.Min, coordsBetween.Longitude.Max
-		mid := (left + right) / 2
+		var mid float64
 		var leftPart, rightPart, midPart int64
 		var err error
 		for {
-			midPart, err = rd.db.GetVertexCountOnVerticalSegment(ctx, coordsBetween.Longitude, mid, rd.generation)
+			mid = (left + right) / 2
+			midPart, err = rd.db.GetVertexCountOnVerticalSegment(ctx, coordsBetween.Latitude, mid, rd.generation)
 			if err != nil {
 				return err
 			}
@@ -39,12 +40,11 @@ func (rd *regionDivider) doDivideIntoRegions(ctx context.Context, coordsBetween 
 			rightPart = count - leftPart // including midPart
 			if leftPart > rightPart {
 				right = mid
-			} else if leftPart+midPart > rightPart-midPart {
+			} else if leftPart == rightPart || leftPart+midPart > rightPart-midPart {
 				break
 			} else {
 				left = mid
 			}
-			mid = (left + right) / 2
 		}
 		err = rd.doDivideIntoRegions(ctx,
 			db.CoordBounds{
@@ -62,10 +62,11 @@ func (rd *regionDivider) doDivideIntoRegions(ctx context.Context, coordsBetween 
 			rightPart, (minRegionId+maxRegionId)/2+1, maxRegionId, false)
 	} else {
 		down, up := coordsBetween.Latitude.Min, coordsBetween.Latitude.Max
-		mid := (down + up) / 2
+		var mid float64
 		var downPart, upPart, midPart int64
 		var err error
 		for {
+			mid = (down + up) / 2
 			midPart, err = rd.db.GetVertexCountOnHorizontalSegment(ctx, mid, coordsBetween.Longitude, rd.generation)
 			if err != nil {
 				return err
@@ -82,12 +83,11 @@ func (rd *regionDivider) doDivideIntoRegions(ctx context.Context, coordsBetween 
 			upPart = count - downPart // including midPart
 			if downPart > upPart {
 				up = mid
-			} else if downPart+midPart > upPart-midPart {
+			} else if downPart == upPart || downPart+midPart > upPart-midPart {
 				break
 			} else {
 				down = mid
 			}
-			mid = (down + up) / 2
 		}
 		err = rd.doDivideIntoRegions(ctx,
 			db.CoordBounds{
@@ -116,5 +116,5 @@ func (rd *regionDivider) divideIntoRegions(ctx context.Context, numRegions int) 
 	if err != nil {
 		return err
 	}
-	return rd.doDivideIntoRegions(ctx, bounds, count, 0, regionId(numRegions), true)
+	return rd.doDivideIntoRegions(ctx, bounds, count, 0, regionId(numRegions)-1, true)
 }

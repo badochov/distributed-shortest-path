@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"os"
+	"sort"
 	"testing"
 	"time"
 
@@ -43,13 +44,32 @@ func (s *dbSuite) TearDownTest() {
 	}
 }
 
+type regions [][]db.VertexId
+
+func (r regions) Len() int {
+	return len(r)
+}
+func (r regions) Swap(i, j int) {
+	r[i], r[j] = r[j], r[i]
+}
+func (r regions) Less(i, j int) bool {
+	for k := 0; k < len(r[i]) && k < len(r[j]); k++ {
+		if r[i][k] < r[j][k] {
+			return true
+		} else if r[i][k] > r[j][k] {
+			return false
+		}
+	}
+	return len(r[i]) < len(r[j])
+}
+
 func (s *dbSuite) Test_RegionDivider_DivideIntoRegions() {
 	const gen = 1
 	cases := []struct {
 		name       string
 		vertices   []db.Vertex
 		numRegions int
-		division   map[regionId][]db.VertexId
+		division   regions
 	}{
 		{
 			"Four vertices each to its own region",
@@ -76,11 +96,11 @@ func (s *dbSuite) Test_RegionDivider_DivideIntoRegions() {
 				},
 			},
 			4,
-			map[regionId][]db.VertexId{
-				0: {1},
-				1: {2},
-				2: {3},
-				3: {4},
+			regions{
+				{1},
+				{2},
+				{3},
+				{4},
 			},
 		},
 	}
@@ -97,17 +117,20 @@ func (s *dbSuite) Test_RegionDivider_DivideIntoRegions() {
 				db:         db,
 				generation: gen,
 			}
-			err = rg.divideIntoRegions(ctx, 16)
+			err = rg.divideIntoRegions(ctx, tc.numRegions)
 			s.Require().NoError(err)
 
+			division := make(regions, tc.numRegions)
 			for i := 0; i < tc.numRegions; i++ {
 				ids, err := db.GetVertexIds(ctx, regionId(i), gen)
 				s.Require().NoError(err)
 				slices.Sort(ids)
-				div := tc.division[regionId(i)]
-				slices.Sort(div)
-				s.Equal(div, ids)
+				division[i] = ids
 			}
+
+			sort.Sort(division)
+			sort.Sort(tc.division)
+			s.Equal(division, tc.division)
 		})
 	}
 }
