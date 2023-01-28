@@ -4,6 +4,7 @@ option go_package = "github.com/badochov/distributed-shortest-path/src/services/
 
 service Link {
   rpc Add(AddRequest) returns (AddResponse) {}
+  rpc Init(InitRequest) returns (InitResponse) {}
 }
 
 message AddRequest {
@@ -14,3 +15,11 @@ message AddRequest {
 message AddResponse {
   int32 res = 1;
 }
+
+message InitRequest {
+  uint32 minRegionId = 1;
+  uint32 maxRegionId = 2;
+  uint64 requestId = 3;
+}
+
+message InitResponse {}

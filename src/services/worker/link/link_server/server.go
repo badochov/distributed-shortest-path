@@ -4,6 +4,8 @@ import (
 	"log"
 	"net"
 
+	"github.com/badochov/distributed-shortest-path/src/libs/db"
+	"github.com/badochov/distributed-shortest-path/src/services/worker/api"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/common"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/link/proto"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
@@ -15,6 +17,7 @@ import (
 
 type Worker interface {
 	Add(ctx context.Context, a, b int32) (int32, error) // Example
+	Init(ctx context.Context, minRegionId db.RegionId, maxRegionId db.RegionId, requestId api.RequestId) error
 }
 
 type Deps struct {
@@ -33,6 +36,14 @@ func (s *linkService) Add(ctx context.Context, req *proto.AddRequest) (*proto.Ad
 		return nil, err
 	}
 	return &proto.AddResponse{Res: res}, nil
+}
+
+func (s *linkService) Init(ctx context.Context, req *proto.InitRequest) (*proto.InitResponse, error) {
+	err := s.worker.Init(ctx, db.RegionId(req.MinRegionId), db.RegionId(req.MaxRegionId), api.RequestId(req.RequestId))
+	if err != nil {
+		return nil, err
+	}
+	return &proto.InitResponse{}, nil
 }
 
 type serv struct {

@@ -3,8 +3,10 @@ package worker
 import (
 	"context"
 	"log"
+	"math/rand"
 
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
+	"github.com/badochov/distributed-shortest-path/src/services/worker/api"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/discoverer"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/link"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/link/link_server"
@@ -34,6 +36,12 @@ type workerData struct {
 	neighbouringVerticesRegions map[db.EdgeId]db.RegionId
 }
 
+type executionData struct {
+	heap       *Heap
+	leftChild  link.Link // leftChild == nil iff left child does not exist
+	rightChild link.Link // rightChild == nil iff right child does not exist
+}
+
 type worker struct {
 	db         db.DB
 	discoverer discoverer.Discoverer
@@ -42,6 +50,7 @@ type worker struct {
 	data       workerData
 	links      map[db.RegionId]link.RegionManager
 	linkPort   int
+	executions map[api.RequestId]executionData
 }
 
 func (w *worker) CalculateArcFlags(ctx context.Context) error {
@@ -49,9 +58,44 @@ func (w *worker) CalculateArcFlags(ctx context.Context) error {
 	panic("implement me")
 }
 
+func randomId(min db.RegionId, max db.RegionId) uint16 {
+	return uint16(rand.Intn(int(max-min))) + min
+}
+
+func (w *worker) Init(ctx context.Context, minRegionId db.RegionId, maxRegionId db.RegionId, requestId api.RequestId) error {
+	if minRegionId == maxRegionId {
+		w.executions[requestId] = executionData{&Heap{}, nil, nil}
+		return nil
+	}
+	leftChildId := randomId(minRegionId, (minRegionId+maxRegionId)/2)
+	rightChildId := randomId((minRegionId+maxRegionId)/2+1, maxRegionId)
+
+	var leftChild, rightChild link.Link
+	var err error
+	_, leftChild, err = w.links[leftChildId].GetLink()
+	if err != nil {
+		return err
+	}
+	_, rightChild, err = w.links[rightChildId].GetLink()
+	if err != nil {
+		return err
+	}
+	w.executions[requestId] = executionData{&Heap{}, leftChild, rightChild}
+	err = leftChild.Init(ctx, minRegionId, (minRegionId+maxRegionId)/2, requestId)
+	if err != nil {
+		return err
+	}
+	err = rightChild.Init(ctx, (minRegionId+maxRegionId)/2+1, maxRegionId, requestId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (w *worker) ShortestPath(ctx context.Context, args service.ShortestPathArgs) (service.ShortestPathResult, error) {
-	//TODO implement me
-	panic("implement me")
+	var err error
+	err = w.Init(ctx, 0, db.RegionId(len(w.links)-1), args.RequestId)
+	return service.ShortestPathResult{}, err
 }
 
 func (w *worker) LoadRegionData(ctx context.Context) (err error) {
