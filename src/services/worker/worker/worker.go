@@ -28,10 +28,10 @@ type Worker interface {
 }
 
 type workerData struct {
-	vertices []db.VertexId
-	edges    []db.Edge
-	arcFlags []db.ArcFlag
-	// TODO [wp] Add info about regions of neighbouring edges
+	vertices                    []db.VertexId
+	edges                       []db.Edge
+	arcFlags                    []db.ArcFlag
+	neighbouringVerticesRegions map[db.EdgeId]db.RegionId
 }
 
 type worker struct {
