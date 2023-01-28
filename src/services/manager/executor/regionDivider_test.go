@@ -3,14 +3,12 @@ package executor
 import (
 	"context"
 	"os"
-	"sort"
 	"testing"
 	"time"
 
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	dbTesting "github.com/badochov/distributed-shortest-path/src/libs/db/testing"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/exp/slices"
 )
 
 type dbSuite struct {
@@ -44,32 +42,13 @@ func (s *dbSuite) TearDownTest() {
 	}
 }
 
-type regions [][]db.VertexId
-
-func (r regions) Len() int {
-	return len(r)
-}
-func (r regions) Swap(i, j int) {
-	r[i], r[j] = r[j], r[i]
-}
-func (r regions) Less(i, j int) bool {
-	for k := 0; k < len(r[i]) && k < len(r[j]); k++ {
-		if r[i][k] < r[j][k] {
-			return true
-		} else if r[i][k] > r[j][k] {
-			return false
-		}
-	}
-	return len(r[i]) < len(r[j])
-}
-
 func (s *dbSuite) Test_RegionDivider_DivideIntoRegions() {
 	const gen = 1
 	cases := []struct {
-		name       string
-		vertices   []db.Vertex
-		numRegions int
-		division   regions
+		name            string
+		vertices        []db.Vertex
+		numRegions      int
+		acceptableDelta int
 	}{
 		{
 			"Four vertices each to its own region",
@@ -96,41 +75,116 @@ func (s *dbSuite) Test_RegionDivider_DivideIntoRegions() {
 				},
 			},
 			4,
-			regions{
-				{1},
-				{2},
-				{3},
-				{4},
+			0,
+		},
+		{
+			"Four vertices two per region",
+			[]db.Vertex{
+				{
+					Id:        1,
+					Latitude:  1,
+					Longitude: 1,
+				},
+				{
+					Id:        2,
+					Latitude:  -1,
+					Longitude: 1,
+				},
+				{
+					Id:        3,
+					Latitude:  -1,
+					Longitude: -1,
+				},
+				{
+					Id:        4,
+					Latitude:  1,
+					Longitude: -1,
+				},
 			},
+			2,
+			0,
+		},
+		{
+			"Three vertices two regions",
+			[]db.Vertex{
+				{
+					Id:        1,
+					Latitude:  1,
+					Longitude: 1,
+				},
+				{
+					Id:        2,
+					Latitude:  -1,
+					Longitude: 1,
+				},
+				{
+					Id:        4,
+					Latitude:  1,
+					Longitude: -1,
+				},
+			},
+			2,
+			1,
+		},
+		{
+			"Five vertices four regions",
+			[]db.Vertex{
+				{
+					Id:        1,
+					Latitude:  1,
+					Longitude: 1,
+				},
+				{
+					Id:        2,
+					Latitude:  -1,
+					Longitude: 1,
+				},
+				{
+					Id:        3,
+					Latitude:  -1,
+					Longitude: -1,
+				},
+				{
+					Id:        4,
+					Latitude:  1,
+					Longitude: -1,
+				},
+			},
+			2,
+			1,
 		},
 	}
 	for _, tc := range cases {
 		s.Run(tc.name, func() {
-			db := s.newDb()
+			conn := s.newDb()
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
-			//ctx := context.Background()
-			err := db.AddVertices(ctx, tc.vertices, gen)
-			//return
+			err := conn.AddVertices(ctx, tc.vertices, gen)
 			s.Require().NoError(err)
 			rg := regionDivider{
-				db:         db,
+				db:         conn,
 				generation: gen,
 			}
 			err = rg.divideIntoRegions(ctx, tc.numRegions)
 			s.Require().NoError(err)
 
-			division := make(regions, tc.numRegions)
+			min, max := len(tc.vertices), 0
+			var count int
+			m := map[regionId][]db.VertexId{}
 			for i := 0; i < tc.numRegions; i++ {
-				ids, err := db.GetVertexIds(ctx, regionId(i), gen)
+				ids, err := conn.GetVertexIds(ctx, regionId(i), gen)
 				s.Require().NoError(err)
-				slices.Sort(ids)
-				division[i] = ids
-			}
 
-			sort.Sort(division)
-			sort.Sort(tc.division)
-			s.Equal(division, tc.division)
+				m[regionId(i)] = ids
+				if len(ids) < min {
+					min = len(ids)
+				} else if len(ids) > max {
+					max = len(ids)
+				}
+				count += len(ids)
+			}
+			s.LessOrEqual(max-min, tc.acceptableDelta, "delta higher that expected, received division: ", m)
+			s.Equal(len(tc.vertices), count, "number of vertices assignments doesn't match number of vertices, received division: ", m)
 		})
 	}
 }
