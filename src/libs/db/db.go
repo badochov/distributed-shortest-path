@@ -55,6 +55,7 @@ type DB interface {
 	GetArcFlags(ctx context.Context, edgeIds []EdgeId, generation Generation) ([]ArcFlag, error)
 	GetVertexCount(ctx context.Context, coordsBetween CoordBounds, generation Generation) (int64, error)
 	GetVertexRegion(ctx context.Context, id VertexId, generation Generation) (RegionId, error)
+	GetEdgeToRegionMapping(ctx context.Context, regionId RegionId, generation Generation) (map[EdgeId]RegionId, error)
 	GetCurrentGeneration(ctx context.Context) (Generation, error)
 	GetNextGeneration(ctx context.Context) (Generation, error)
 	GetActiveGeneration(ctx context.Context) (Generation, error)
@@ -192,6 +193,41 @@ func (d db) GetVertexRegion(ctx context.Context, id VertexId, generation Generat
 		return 0, err
 	}
 	return r.Region, nil
+}
+
+func (d db) GetEdgeToRegionMapping(ctx context.Context, regionId RegionId, generation Generation) (map[EdgeId]RegionId, error) {
+	rb := d.q.RegionBinding
+	rb2 := rb.As("rb2")
+	e := d.q.Edge
+
+	mappings := make(map[EdgeId]RegionId)
+
+	rows, err := rb.WithContext(ctx).
+		Select(e.ID, rb2.Region).
+		Join(e, e.FromId.EqCol(rb.VertexID)).
+		Join(rb2, e.ToId.EqCol(rb2.VertexID)).
+		Where(rb.Region.Eq(regionId), rb.Generation.Eq(generation)).
+		Rows()
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var mapping struct {
+		Id     EdgeId
+		Region RegionId
+	}
+	for rows.Next() {
+		// ScanRows is a method of `gorm.DB`, it can be used to scan a row into a struct
+		err = rb.WithContext(ctx).ScanRows(rows, &mapping)
+		if err != nil {
+			return nil, err
+		}
+		mappings[mapping.Id] = mapping.Region
+	}
+
+	return mappings, nil
 }
 
 func (d db) SetRegion(ctx context.Context, c CoordBounds, region RegionId, generation Generation) (int64, error) {
