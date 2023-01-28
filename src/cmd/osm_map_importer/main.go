@@ -10,6 +10,7 @@ import (
 )
 
 func main() {
+	// TODO add length to edges.
 	addr := flag.String("address", "localhost:8080", "Address of manager server.")
 	path := flag.String("file", "local/data/monaco.osm", "Path to .osm file containing graph data.}")
 
