@@ -6,5 +6,6 @@ type Edge struct {
 	From       Vertex
 	ToId       int64 `gorm:"unique_index:from_to_vertices"`
 	To         Vertex
+	Length     float64
 	Generation uint16
 }

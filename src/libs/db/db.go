@@ -97,9 +97,10 @@ func (d db) GetEdgesFrom(ctx context.Context, from []VertexId, generation Genera
 	es := make([]Edge, 0, generation)
 	for _, edge := range edges {
 		es = append(es, Edge{
-			From: edge.FromId,
-			To:   edge.ToId,
-			Id:   edge.ID,
+			From:   edge.FromId,
+			To:     edge.ToId,
+			Id:     edge.ID,
+			Length: edge.Length,
 		})
 	}
 
@@ -298,6 +299,7 @@ func (d db) AddEdges(ctx context.Context, edges []Edge, generation Generation) e
 			FromId:     e.From,
 			ToId:       e.To,
 			Generation: generation,
+			Length:     e.Length,
 		})
 	}
 
