@@ -76,6 +76,11 @@ func (w *worker) LoadRegionData(ctx context.Context) (err error) {
 		return
 	}
 
+	w.data.neighbouringEdgesRegions, err = w.db.GetEdgeToRegionMapping(ctx, w.regionId, w.generation)
+	if err != nil {
+		return
+	}
+
 	return
 }
 
