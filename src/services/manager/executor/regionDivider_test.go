@@ -77,6 +77,82 @@ func (s *dbSuite) Test_RegionDivider_DivideIntoRegions() {
 			4,
 			0,
 		},
+		{
+			"Four vertices two per region",
+			[]db.Vertex{
+				{
+					Id:        1,
+					Latitude:  1,
+					Longitude: 1,
+				},
+				{
+					Id:        2,
+					Latitude:  -1,
+					Longitude: 1,
+				},
+				{
+					Id:        3,
+					Latitude:  -1,
+					Longitude: -1,
+				},
+				{
+					Id:        4,
+					Latitude:  1,
+					Longitude: -1,
+				},
+			},
+			2,
+			0,
+		},
+		{
+			"Three vertices two regions",
+			[]db.Vertex{
+				{
+					Id:        1,
+					Latitude:  1,
+					Longitude: 1,
+				},
+				{
+					Id:        2,
+					Latitude:  -1,
+					Longitude: 1,
+				},
+				{
+					Id:        4,
+					Latitude:  1,
+					Longitude: -1,
+				},
+			},
+			2,
+			1,
+		},
+		{
+			"Five vertices four regions",
+			[]db.Vertex{
+				{
+					Id:        1,
+					Latitude:  1,
+					Longitude: 1,
+				},
+				{
+					Id:        2,
+					Latitude:  -1,
+					Longitude: 1,
+				},
+				{
+					Id:        3,
+					Latitude:  -1,
+					Longitude: -1,
+				},
+				{
+					Id:        4,
+					Latitude:  1,
+					Longitude: -1,
+				},
+			},
+			2,
+			1,
+		},
 	}
 	for _, tc := range cases {
 		s.Run(tc.name, func() {
