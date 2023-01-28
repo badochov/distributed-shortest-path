@@ -249,12 +249,11 @@ func (e *executor) divideIntoRegions(ctx context.Context) error {
 	defer can()
 
 	// TODO [wprzytula] Think if retries should be implemented and how.
-	return e.divideIntoRegionsDoer(ctx)
-}
-
-func (e *executor) divideIntoRegionsDoer(ctx context.Context) error {
-	// TODO [kdrabik] Implement me
-	panic("Implement me")
+	rd := regionDivider{
+		db:         e.db,
+		generation: e.generation,
+	}
+	return rd.divideIntoRegions(ctx, len(e.clients)-1)
 }
 
 func (e *executor) start() error {

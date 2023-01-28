@@ -54,6 +54,8 @@ type DB interface {
 	GetEdgesFrom(ctx context.Context, from []VertexId, generation Generation) ([]Edge, error)
 	GetArcFlags(ctx context.Context, edgeIds []EdgeId, generation Generation) ([]ArcFlag, error)
 	GetVertexCount(ctx context.Context, coordsBetween CoordBounds, generation Generation) (int64, error)
+	GetVertexCountOnVerticalSegment(ctx context.Context, latitude MinMax, longtitude float64, generation Generation) (int64, error)
+	GetVertexCountOnHorizontalSegment(ctx context.Context, latitude float64, longtitude MinMax, generation Generation) (int64, error)
 	GetVertexRegion(ctx context.Context, id VertexId, generation Generation) (RegionId, error)
 	GetCurrentGeneration(ctx context.Context) (Generation, error)
 	GetNextGeneration(ctx context.Context) (Generation, error)
@@ -236,6 +238,26 @@ func (d db) GetVertexCount(ctx context.Context, c CoordBounds, generation Genera
 	).Count()
 }
 
+func (d db) GetVertexCountOnVerticalSegment(ctx context.Context, latitude MinMax, longtitude float64, generation Generation) (int64, error) {
+	v := d.q.Vertex
+	return d.q.WithContext(ctx).Vertex.Where(
+		v.Generation.Eq(generation),
+		v.Latitude.Gte(latitude.Min),
+		v.Latitude.Lt(latitude.Max),
+		v.Longitude.Eq(longtitude),
+	).Count()
+}
+
+func (d db) GetVertexCountOnHorizontalSegment(ctx context.Context, latitude float64, longtitude MinMax, generation Generation) (int64, error) {
+	v := d.q.Vertex
+	return d.q.WithContext(ctx).Vertex.Where(
+		v.Generation.Eq(generation),
+		v.Latitude.Eq(latitude),
+		v.Longitude.Gte(longtitude.Min),
+		v.Longitude.Lt(longtitude.Max),
+	).Count()
+}
+
 func (d db) SetFlag(ctx context.Context, edgeIds []EdgeId, region RegionId, generation Generation) error {
 	return d.q.Transaction(
 		func(tx *query.Query) error {
@@ -283,7 +305,7 @@ func (d db) AddVertices(ctx context.Context, vertices []Vertex, generation Gener
 		vs = append(vs, &model.Vertex{
 			ID:         v.Id,
 			Latitude:   v.Latitude,
-			Longitude:  v.Latitude,
+			Longitude:  v.Longitude,
 			Generation: generation,
 		})
 	}
