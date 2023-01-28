@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	dbTesting "github.com/badochov/distributed-shortest-path/src/libs/db/testing"
@@ -86,9 +87,9 @@ func (s *dbSuite) Test_RegionDivider_DivideIntoRegions() {
 	for _, tc := range cases {
 		s.Run(tc.name, func() {
 			db := s.newDb()
-			//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			//defer cancel()
-			ctx := context.Background()
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			//ctx := context.Background()
 			err := db.AddVertices(ctx, tc.vertices, gen)
 			//return
 			s.Require().NoError(err)
