@@ -6,6 +6,7 @@ service Link {
   rpc Add(AddRequest) returns (AddResponse) {}
   rpc Init(InitRequest) returns (InitResponse) {}
   rpc Min(MinRequest) returns (MinResponse) {}
+  rpc Step(StepRequest) returns (StepResponse) {}
 }
 
 message AddRequest {
@@ -31,5 +32,16 @@ message MinRequest {
 
 message MinResponse {
   bool isSet = 1;
+  double distance = 2;
+}
+
+message StepRequest {
+  double distance = 1;
+  int64 to = 2;
+  uint64 requestId = 3;
+}
+
+message StepResponse {
+  bool found = 1;
   double distance = 2;
 }

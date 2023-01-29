@@ -36,6 +36,14 @@ func (l *remoteLink) Min(ctx context.Context, requestId api.RequestId) (bool, fl
 	return resp.IsSet, resp.Distance, nil
 }
 
+func (l *remoteLink) Step(ctx context.Context, distance float64, to db.VertexId, requestId api.RequestId) (bool, float64, error) {
+	resp, err := l.client.Step(ctx, &proto.StepRequest{Distance: distance, To: to, RequestId: uint64(requestId)})
+	if err != nil {
+		return false, 0, err
+	}
+	return resp.Found, resp.Distance, nil
+}
+
 var _ Link = &remoteLink{}
 
 type remoteLink struct {

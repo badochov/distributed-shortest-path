@@ -25,6 +25,7 @@ type LinkClient interface {
 	Add(ctx context.Context, in *AddRequest, opts ...grpc.CallOption) (*AddResponse, error)
 	Init(ctx context.Context, in *InitRequest, opts ...grpc.CallOption) (*InitResponse, error)
 	Min(ctx context.Context, in *MinRequest, opts ...grpc.CallOption) (*MinResponse, error)
+	Step(ctx context.Context, in *StepRequest, opts ...grpc.CallOption) (*StepResponse, error)
 }
 
 type linkClient struct {
@@ -62,6 +63,15 @@ func (c *linkClient) Min(ctx context.Context, in *MinRequest, opts ...grpc.CallO
 	return out, nil
 }
 
+func (c *linkClient) Step(ctx context.Context, in *StepRequest, opts ...grpc.CallOption) (*StepResponse, error) {
+	out := new(StepResponse)
+	err := c.cc.Invoke(ctx, "/Link/Step", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LinkServer is the server API for Link service.
 // All implementations must embed UnimplementedLinkServer
 // for forward compatibility
@@ -69,6 +79,7 @@ type LinkServer interface {
 	Add(context.Context, *AddRequest) (*AddResponse, error)
 	Init(context.Context, *InitRequest) (*InitResponse, error)
 	Min(context.Context, *MinRequest) (*MinResponse, error)
+	Step(context.Context, *StepRequest) (*StepResponse, error)
 	mustEmbedUnimplementedLinkServer()
 }
 
@@ -84,6 +95,9 @@ func (UnimplementedLinkServer) Init(context.Context, *InitRequest) (*InitRespons
 }
 func (UnimplementedLinkServer) Min(context.Context, *MinRequest) (*MinResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Min not implemented")
+}
+func (UnimplementedLinkServer) Step(context.Context, *StepRequest) (*StepResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Step not implemented")
 }
 func (UnimplementedLinkServer) mustEmbedUnimplementedLinkServer() {}
 
@@ -152,6 +166,24 @@ func _Link_Min_Handler(srv interface{}, ctx context.Context, dec func(interface{
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Link_Step_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StepRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LinkServer).Step(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Link/Step",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LinkServer).Step(ctx, req.(*StepRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Link_ServiceDesc is the grpc.ServiceDesc for Link service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -170,6 +202,10 @@ var Link_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Min",
 			Handler:    _Link_Min_Handler,
+		},
+		{
+			MethodName: "Step",
+			Handler:    _Link_Step_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

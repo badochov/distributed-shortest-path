@@ -15,6 +15,7 @@ type Link interface {
 	Add(ctx context.Context, a, b int32) (int32, error) // Example
 	Init(ctx context.Context, minRegionId db.RegionId, maxRegionId db.RegionId, requestId api.RequestId) error
 	Min(ctx context.Context, requestId api.RequestId) (bool, float64, error)
+	Step(ctx context.Context, distance float64, to db.VertexId, requestId api.RequestId) (bool, float64, error)
 
 	io.Closer
 }

@@ -19,6 +19,7 @@ type Worker interface {
 	Add(ctx context.Context, a, b int32) (int32, error) // Example
 	Init(ctx context.Context, minRegionId db.RegionId, maxRegionId db.RegionId, requestId api.RequestId) error
 	Min(ctx context.Context, requestId api.RequestId) (bool, float64, error)
+	Step(ctx context.Context, distance float64, to db.VertexId, requestId api.RequestId) (bool, float64, error)
 }
 
 type Deps struct {
@@ -53,6 +54,14 @@ func (s *linkService) Min(ctx context.Context, req *proto.MinRequest) (*proto.Mi
 		return nil, err
 	}
 	return &proto.MinResponse{IsSet: isSet, Distance: distance}, nil
+}
+
+func (s *linkService) Step(ctx context.Context, req *proto.StepRequest) (*proto.StepResponse, error) {
+	found, distance, err := s.worker.Step(ctx, req.Distance, req.To, api.RequestId(req.RequestId))
+	if err != nil {
+		return nil, err
+	}
+	return &proto.StepResponse{Found: found, Distance: distance}, nil
 }
 
 type serv struct {

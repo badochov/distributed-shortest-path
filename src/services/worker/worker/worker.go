@@ -128,6 +128,10 @@ func (w *worker) Min(ctx context.Context, requestId api.RequestId) (bool, float6
 	return isSet, distance, nil
 }
 
+func (w *worker) Step(ctx context.Context, distance float64, to db.VertexId, requestId api.RequestId) (bool, float64, error) {
+	return false, 0, nil
+}
+
 func (w *worker) ShortestPath(ctx context.Context, args service.ShortestPathArgs) (service.ShortestPathResult, error) {
 	var err error
 	err = w.Init(ctx, 0, db.RegionId(len(w.links)-1), args.RequestId)
