@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"sync"
 	"sync/atomic"
@@ -144,14 +145,14 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 	}
 
 	// Shutdown worker service.
-	log.Default().Println("Shutting down workers")
+	log.Println("Shutting down workers")
 	if err := e.rescaleAllRegions(ctx, 0); err != nil {
 		return wrap(err)
 	}
 	if err := e.incNextGen(ctx); err != nil {
 		return wrap(err) // TODO[wprzytula]: consider inc iff not yet incremented
 	}
-	log.Default().Println("Dividing into regions")
+	log.Println("Dividing into regions")
 	if err := e.divideIntoRegions(ctx); err != nil {
 		return wrap(err)
 	}
@@ -159,11 +160,11 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 		return wrap(err)
 	}
 	// Start worker service.
-	log.Default().Println("Starting workers for arc flags calculation")
+	log.Println("Starting workers for arc flags calculation")
 	if err := e.rescaleAllRegions(ctx, e.defaultWorkerReplicas); err != nil {
 		return wrap(err)
 	}
-	log.Default().Println("Calculating arc flags")
+	log.Println("Calculating arc flags")
 	// TODO [wprzytula] wait for workers to be alive (eg. Add Healthz method to client and wait for it to respond with success)
 	if err := e.calculateArcFlags(ctx); err != nil {
 		return wrap(err)
@@ -171,7 +172,7 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 	if err := e.setGenToNext(ctx); err != nil {
 		return wrap(err)
 	}
-	log.Default().Println("Restarting workers")
+	log.Println("Restarting workers")
 	// Restart worker service.
 	if err := e.rescaleAllRegions(ctx, 0); err != nil {
 		return wrap(err)
