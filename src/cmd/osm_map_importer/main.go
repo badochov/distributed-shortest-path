@@ -23,10 +23,24 @@ func main() {
 	}
 
 	c := client.New(http.DefaultClient, *addr)
-	if err := c.AddVertices(vertices); err != nil {
+	if err := doInBatches(c.AddVertices, vertices, 1024); err != nil {
 		log.Fatalf("Error adding vertices, %s", err)
 	}
-	if err := c.AddEdges(edges); err != nil {
+	if err := doInBatches(c.AddEdges, edges, 1024); err != nil {
 		log.Fatalf("Error adding edges, %s", err)
 	}
+}
+
+func doInBatches[T any](fn func([]T) error, data []T, batchSize int) error {
+	for len(data) > 0 {
+		if batchSize > len(data) {
+			batchSize = len(data)
+		}
+		batch := data[:batchSize]
+		if err := fn(batch); err != nil {
+			return err
+		}
+		data = data[batchSize:]
+	}
+	return nil
 }
