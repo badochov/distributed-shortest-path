@@ -6,6 +6,9 @@ import (
 
 	"github.com/badochov/distributed-shortest-path/src/services/worker/common"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/link/proto"
+	"github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
+	"go.uber.org/zap"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
@@ -46,7 +49,18 @@ type Server interface {
 }
 
 func New(deps Deps) Server {
-	s := grpc.NewServer()
+	zapLogger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
+	s := grpc.NewServer(
+		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
+			grpc_zap.StreamServerInterceptor(zapLogger),
+		)),
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+			grpc_zap.UnaryServerInterceptor(zapLogger),
+		)),
+	)
 
 	proto.RegisterLinkServer(s, &linkService{worker: deps.Worker})
 	log.Printf("server listening at %v", deps.Listener.Addr())
