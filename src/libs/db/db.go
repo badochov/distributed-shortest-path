@@ -51,7 +51,7 @@ type DB interface {
 	AddArcFlags(ctx context.Context, edgeIds []EdgeId, generation Generation) error
 
 	GetVertexIds(ctx context.Context, id RegionId, generation Generation) ([]VertexId, error)
-	GetEdgesFrom(ctx context.Context, from []VertexId, generation Generation) ([]Edge, error)
+	GetEdgesFrom(ctx context.Context, from []VertexId, generation Generation) (map[VertexId][]Edge, error)
 	GetArcFlags(ctx context.Context, edgeIds []EdgeId, generation Generation) ([]ArcFlag, error)
 	GetVertexCount(ctx context.Context, coordsBetween CoordBounds, generation Generation) (int64, error)
 	GetVertexCountOnVerticalSegment(ctx context.Context, latitude MinMax, longtitude float64, generation Generation) (int64, error)
@@ -89,7 +89,7 @@ func (d db) GetVertexIds(ctx context.Context, id RegionId, generation Generation
 	return vs, nil
 }
 
-func (d db) GetEdgesFrom(ctx context.Context, from []VertexId, generation Generation) ([]Edge, error) {
+func (d db) GetEdgesFrom(ctx context.Context, from []VertexId, generation Generation) (map[VertexId][]Edge, error) {
 	e := d.q.Edge
 
 	edges, err := d.q.WithContext(ctx).Edge.Where(e.Generation.Eq(generation), e.FromId.In(from...)).Find()
@@ -97,9 +97,9 @@ func (d db) GetEdgesFrom(ctx context.Context, from []VertexId, generation Genera
 		return nil, err
 	}
 
-	es := make([]Edge, 0, generation)
+	es := make(map[VertexId][]Edge, len(from))
 	for _, edge := range edges {
-		es = append(es, Edge{
+		es[edge.FromId] = append(es[edge.FromId], Edge{
 			From:   edge.FromId,
 			To:     edge.ToId,
 			Id:     edge.ID,
@@ -199,13 +199,13 @@ func (d db) GetVertexRegion(ctx context.Context, id VertexId, generation Generat
 
 func (d db) GetEdgeToRegionMapping(ctx context.Context, regionId RegionId, generation Generation) (map[EdgeId]RegionId, error) {
 	/* Intended query:
-SELECT e.*, rb2.Region
-FROM
-RegionBinding AS rb1
-JOIN Edge AS e ON rb1.VertexID = e.FromId
-JOIN RegionBinding AS rb2 ON e.ToId = rb2.VertexID
-WHERE rb1.Region = `regionId`
-*/
+	SELECT e.*, rb2.Region
+	FROM
+	RegionBinding AS rb1
+	JOIN Edge AS e ON rb1.VertexID = e.FromId
+	JOIN RegionBinding AS rb2 ON e.ToId = rb2.VertexID
+	WHERE rb1.Region = `regionId`
+	*/
 
 	rb := d.q.RegionBinding
 	rb2 := rb.As("rb2")

@@ -29,7 +29,7 @@ type Worker interface {
 
 type workerData struct {
 	vertices                    []db.VertexId
-	edges                       []db.Edge
+	edges                       map[db.VertexId][]db.Edge
 	arcFlags                    []db.ArcFlag
 	neighbouringVerticesRegions map[db.EdgeId]db.RegionId
 }
@@ -68,8 +68,10 @@ func (w *worker) LoadRegionData(ctx context.Context) (err error) {
 		return
 	}
 	eIds := make([]db.EdgeId, 0, len(w.data.edges))
-	for _, e := range w.data.edges {
-		eIds = append(eIds, e.Id)
+	for _, edges := range w.data.edges {
+		for _, e := range edges {
+			eIds = append(eIds, e.Id)
+		}
 	}
 	w.data.arcFlags, err = w.db.GetArcFlags(ctx, eIds, w.generation)
 	if err != nil {
