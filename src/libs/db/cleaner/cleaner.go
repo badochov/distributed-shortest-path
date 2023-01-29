@@ -9,6 +9,7 @@ import (
 	"github.com/badochov/distributed-shortest-path/src/libs/db/query"
 	"github.com/hashicorp/go-multierror"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 )
 
@@ -39,6 +40,7 @@ func Connect(con *gorm.DB) (*Cleaner, error) {
 	if err := con.AutoMigrate(model.List...); err != nil {
 		return nil, err
 	}
+	con.Logger = logger.Default.LogMode(logger.Info)
 	return &Cleaner{q: query.Use(con), con: con}, nil
 }
 

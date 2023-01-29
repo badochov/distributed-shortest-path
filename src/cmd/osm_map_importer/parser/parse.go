@@ -61,11 +61,11 @@ func getWithoutLength(path string) ([]client.Vertex, []client.Edge, error) {
 	for _, w := range data.Ways {
 		currN := w.Nds[0]
 
-		for _, n := range w.Nds[1:] {
+		for i, n := range w.Nds[1:] {
 			edges = append(edges, client.Edge{
 				From: currN.ID,
 				To:   n.ID,
-				Id:   w.ID,
+				Id:   int64(i<<32) | w.ID,
 			})
 			currN = n
 		}
