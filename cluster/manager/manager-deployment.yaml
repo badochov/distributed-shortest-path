@@ -22,7 +22,7 @@ spec:
           - name: NUM_REGIONS
             value: "16"
           - name: REGION_URL_TEMPLATE
-            value: workers-region-%d
+            value: workers-region-%d.shortest-path.svc.cluster.local
           - name: REGION_DEPLOYMENT_TEMPLATE
             value: workers-region-%d
           - name: PORT
