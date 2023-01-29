@@ -59,7 +59,7 @@ type worker struct {
 
 func (w *worker) CalculateArcFlags(ctx context.Context) error {
 	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func randomId(min db.RegionId, max db.RegionId) uint16 {
@@ -152,13 +152,13 @@ func (w *worker) ShortestPath(ctx context.Context, args service.ShortestPathArgs
 	if err != nil {
 		return service.ShortestPathResult{}, err
 	}
-	vertexId, distance := args.From, float64(0)
-	for vertexId != args.To {
-		vertexId, distance, err = w.Step(ctx, vertexId, distance, args.RequestId)
-		if err != nil {
-			return service.ShortestPathResult{}, err
-		}
-	}
+	// vertexId, distance := args.From, float64(0)
+	// for vertexId != args.To {
+	// 	vertexId, distance, err = w.Step(ctx, vertexId, distance, args.RequestId)
+	// 	if err != nil {
+	// 		return service.ShortestPathResult{}, err
+	// 	}
+	// }
 	return service.ShortestPathResult{}, nil
 }
 
@@ -247,6 +247,7 @@ func New(deps Deps) (Worker, error) {
 		regionId:   deps.RegionID,
 		linkPort:   deps.LinkPort,
 		links:      make(map[db.RegionId]link.RegionManager),
+		executions: make(map[api.RequestId]executionData),
 	}
 	if err := w.initDiscoverer(deps.Context); err != nil {
 		return nil, err
