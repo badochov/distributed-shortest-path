@@ -13,8 +13,7 @@ import (
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/discoverer"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/link/link_server"
-	"github.com/badochov/distributed-shortest-path/src/services/worker/service_server"
-	"github.com/badochov/distributed-shortest-path/src/services/worker/service_server/executor"
+	"github.com/badochov/distributed-shortest-path/src/services/worker/service"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/worker"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -65,22 +64,18 @@ func main() {
 		log.Fatalf("error creating worker, %s", err)
 	}
 
+	// TODO [wprzytula] think about timeouts
 	ctx, can := context.WithTimeout(context.Background(), 3*time.Minute)
 	if err := wrkr.LoadRegionData(ctx); err != nil {
 		log.Fatalf("error loading region data, %s", err)
 	}
 	can()
 
-	execDeps := executor.Deps{
+	serviceDeps := service.Deps{
+		Port:   getPortFromEnv("WORKER_SERVER_PORT"),
 		Worker: wrkr,
 	}
-	exec := executor.New(execDeps)
-
-	serviceDeps := service_server.Deps{
-		Port:     getPortFromEnv("WORKER_SERVER_PORT"),
-		Executor: exec,
-	}
-	sW := service_server.New(serviceDeps)
+	sW := service.New(serviceDeps)
 
 	lL, err := net.Listen("tcp", fmt.Sprintf(":%d", linkPort))
 	if err != nil {

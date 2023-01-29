@@ -8,7 +8,7 @@ import (
 	"github.com/badochov/distributed-shortest-path/src/services/worker/discoverer"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/link"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/link/link_server"
-	"github.com/badochov/distributed-shortest-path/src/services/worker/service_server/executor"
+	"github.com/badochov/distributed-shortest-path/src/services/worker/service"
 )
 
 type Deps struct {
@@ -21,7 +21,7 @@ type Deps struct {
 
 // Worker All methods from link service and worker service should end up calling this interface.
 type Worker interface {
-	executor.Worker
+	service.Worker
 	link_server.Worker
 
 	LoadRegionData(ctx context.Context) error
@@ -44,12 +44,12 @@ type worker struct {
 	linkPort   int
 }
 
-func (w *worker) CalculateArcFlags() error {
+func (w *worker) CalculateArcFlags(ctx context.Context) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (w *worker) ShortestPath(args executor.ShortestPathArgs) (executor.ShortestPathResult, error) {
+func (w *worker) ShortestPath(ctx context.Context, args service.ShortestPathArgs) (service.ShortestPathResult, error) {
 	//TODO implement me
 	panic("implement me")
 }

@@ -1,18 +1,27 @@
-package service_server
+package service
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/badochov/distributed-shortest-path/src/services/worker/api"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/common"
-	"github.com/badochov/distributed-shortest-path/src/services/worker/service_server/executor"
 	"github.com/gin-gonic/gin"
 )
 
 type Deps struct {
-	Executor executor.Executor
-	Port     int
+	Worker Worker
+	Port   int
+}
+
+type ShortestPathArgs = api.ShortestPathRequest
+type ShortestPathResult = api.ShortestPathResponse
+
+type Worker interface {
+	CalculateArcFlags(ctx context.Context) error
+	ShortestPath(ctx context.Context, args ShortestPathArgs) (ShortestPathResult, error)
 }
 
 type Server interface {
@@ -26,59 +35,54 @@ type server struct {
 }
 
 func (s *server) Run() error {
-	if err := s.handler.Run(); err != nil {
-		return err
-	}
-
 	return s.engine.Run(fmt.Sprintf(":%d", s.port))
 }
 
 type handler struct {
-	executor executor.Executor
-}
-
-func (h *handler) Run() error {
-	return h.executor.Run()
+	worker Worker
 }
 
 func (h *handler) ShortestPath(c *gin.Context) {
+	// TODO [wprzytula] adjust timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	var req api.ShortestPathRequest
 	if err := c.BindJSON(&req); err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		_ = c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
-	resp, code, err := h.executor.ShortestPath(req)
+	resp, err := h.worker.ShortestPath(ctx, req)
 	if err != nil {
-		c.AbortWithError(code, err)
+		_ = c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	c.JSON(code, resp)
+	c.JSON(http.StatusOK, resp)
 }
 
 func (h *handler) CalculateArcFlags(c *gin.Context) {
-	resp, code, err := h.executor.CalculateArcFlags()
+	// TODO [wprzytula] adjust timeout
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	err := h.worker.CalculateArcFlags(ctx)
 	if err != nil {
-		c.AbortWithError(code, err)
+		_ = c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	c.JSON(code, resp)
+	c.JSON(http.StatusOK, "")
 }
 
 func (h *handler) Healthz(c *gin.Context) {
-	resp, code, err := h.executor.Healthz()
-	if err != nil {
-		c.AbortWithError(code, err)
-		return
-	}
-	c.JSON(code, resp)
+	c.JSON(http.StatusOK, "OK")
 }
 
 func New(deps Deps) Server {
 	router := gin.Default()
 
 	h := handler{
-		executor: deps.Executor,
+		worker: deps.Worker,
 	}
 
 	router.POST(api.ShortestPathUrl, h.ShortestPath)
