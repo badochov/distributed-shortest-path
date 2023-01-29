@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"container/heap"
 	"context"
 	"log"
 	"math/rand"
@@ -32,13 +33,15 @@ type Worker interface {
 type workerData struct {
 	vertices                    []db.VertexId
 	edges                       map[db.VertexId][]db.Edge
+	edgeTargets                 map[db.VertexId]bool
 	arcFlags                    []db.ArcFlag
 	neighbouringVerticesRegions map[db.EdgeId]db.RegionId
 }
 
 type executionData struct {
-	heap       *Heap
-	visited    map[db.VertexId]bool
+	queue      PriorityQueue
+	inQueue    map[db.VertexId]*Item
+	processed  map[db.VertexId]bool
 	leftChild  link.Link // leftChild == nil iff left child does not exist
 	rightChild link.Link // rightChild == nil iff right child does not exist
 }
@@ -65,7 +68,7 @@ func randomId(min db.RegionId, max db.RegionId) uint16 {
 
 func (w *worker) Init(ctx context.Context, minRegionId db.RegionId, maxRegionId db.RegionId, requestId api.RequestId) error {
 	if minRegionId == maxRegionId {
-		w.executions[requestId] = executionData{&Heap{}, make(map[db.VertexId]bool, len(w.data.vertices)), nil, nil}
+		w.executions[requestId] = executionData{make(PriorityQueue, 0), make(map[db.VertexId]*Item), make(map[db.VertexId]bool), nil, nil}
 		return nil
 	}
 	leftChildId := randomId(minRegionId, (minRegionId+maxRegionId)/2)
@@ -81,7 +84,7 @@ func (w *worker) Init(ctx context.Context, minRegionId db.RegionId, maxRegionId 
 	if err != nil {
 		return err
 	}
-	w.executions[requestId] = executionData{&Heap{}, make(map[db.VertexId]bool, len(w.data.vertices)), leftChild, rightChild}
+	w.executions[requestId] = executionData{make(PriorityQueue, 0), make(map[db.VertexId]*Item, 0), make(map[db.VertexId]bool), leftChild, rightChild}
 	err = leftChild.Init(ctx, minRegionId, (minRegionId+maxRegionId)/2, requestId)
 	if err != nil {
 		return err
@@ -93,53 +96,70 @@ func (w *worker) Init(ctx context.Context, minRegionId db.RegionId, maxRegionId 
 	return nil
 }
 
-func minDistanceVertex(isSet1 bool, distance1 float64, vertexId1 db.VertexId,
-	isSet2 bool, distance2 float64, vertexId2 db.VertexId) (bool, float64, db.VertexId) {
-	if isSet1 == false {
-		return isSet2, distance2, vertexId2
-	} else if isSet2 == false {
-		return isSet1, distance1, vertexId1
-	} else if distance1 < distance2 {
-		return true, distance1, vertexId1
-	} else {
-		return true, distance2, vertexId2
-	}
-}
+func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float64, requestId api.RequestId) (db.VertexId, float64, error) {
+	queue, inQueue, processed := w.executions[requestId].queue, w.executions[requestId].inQueue, w.executions[requestId].processed
 
-func (w *worker) Min(ctx context.Context, requestId api.RequestId) (bool, float64, db.VertexId, error) {
-	isSetLeft, isSetRight, isSet := false, false, false
-	var distanceLeft, distanceRight, distance float64
-	var vertexIdLeft, vertexIdRight, vertexId db.VertexId
-	var err error
-	if w.executions[requestId].heap.Size() > 0 {
-		isSet = true
-		distance, vertexId = w.executions[requestId].heap.Top()
+	if w.data.edgeTargets[vertexId] {
+		processed[vertexId] = true
 	}
-	if w.executions[requestId].leftChild != nil {
-		isSetLeft, distanceLeft, vertexIdLeft, err = w.executions[requestId].leftChild.Min(ctx, requestId)
-		if err != nil {
-			return false, 0, 0, err
+
+	for _, edge := range w.data.edges[vertexId] {
+		if !processed[edge.To] {
+			item, prs := inQueue[edge.To]
+			if !prs {
+				newItem := &Item{id: edge.To, distance: distance + edge.Length}
+				inQueue[edge.To] = newItem
+				heap.Push(&queue, newItem)
+			} else if distance+edge.Length < item.distance {
+				queue.update(item, distance+edge.Length)
+			}
 		}
-		isSet, distance, vertexId = minDistanceVertex(isSet, distance, vertexId, isSetLeft, distanceLeft, vertexIdLeft)
+	}
+
+	outVertexId, outDistance := db.VertexId(0), 1.7e+308
+	for queue.Len() > 0 {
+		item := heap.Pop(&queue).(*Item)
+		if !processed[item.id] {
+			outVertexId, outDistance = item.id, item.distance
+			break
+		}
+	}
+
+	if w.executions[requestId].leftChild != nil {
+		leftVertexId, leftDistance, err := w.executions[requestId].leftChild.Step(ctx, vertexId, distance, requestId)
+		if err != nil {
+			return 0, 0, err
+		}
+		if leftDistance < outDistance {
+			outVertexId, outDistance = leftVertexId, leftDistance
+		}
 	}
 	if w.executions[requestId].rightChild != nil {
-		isSetRight, distanceRight, vertexIdRight, err = w.executions[requestId].rightChild.Min(ctx, requestId)
+		rightVertexId, rightDistance, err := w.executions[requestId].rightChild.Step(ctx, vertexId, distance, requestId)
 		if err != nil {
-			return false, 0, 0, err
+			return 0, 0, err
 		}
-		isSet, distance, vertexId = minDistanceVertex(isSet, distance, vertexId, isSetRight, distanceRight, vertexIdRight)
+		if rightDistance < outDistance {
+			outVertexId, outDistance = rightVertexId, rightDistance
+		}
 	}
-	return isSet, distance, vertexId, nil
-}
-
-func (w *worker) Step(ctx context.Context, vertexId db.VertexId, destId db.VertexId, requestId api.RequestId) (bool, float64, error) {
-	return false, 0, nil
+	return outVertexId, outDistance, nil
 }
 
 func (w *worker) ShortestPath(ctx context.Context, args service.ShortestPathArgs) (service.ShortestPathResult, error) {
 	var err error
-	err = w.Init(ctx, 0, db.RegionId(len(w.links)-1), args.RequestId)
-	return service.ShortestPathResult{}, err
+	err = w.Init(ctx, 0, uint16(len(w.links)-1), args.RequestId)
+	if err != nil {
+		return service.ShortestPathResult{}, err
+	}
+	vertexId, distance := args.From, float64(0)
+	for vertexId != args.To {
+		vertexId, distance, err = w.Step(ctx, vertexId, distance, args.RequestId)
+		if err != nil {
+			return service.ShortestPathResult{}, err
+		}
+	}
+	return service.ShortestPathResult{}, nil
 }
 
 func (w *worker) LoadRegionData(ctx context.Context) (err error) {
@@ -156,9 +176,11 @@ func (w *worker) LoadRegionData(ctx context.Context) (err error) {
 		return
 	}
 	eIds := make([]db.EdgeId, 0, len(w.data.edges))
+	w.data.edgeTargets = make(map[int64]bool)
 	for _, edges := range w.data.edges {
 		for _, e := range edges {
 			eIds = append(eIds, e.Id)
+			w.data.edgeTargets[e.To] = true
 		}
 	}
 	w.data.arcFlags, err = w.db.GetArcFlags(ctx, eIds, w.generation)

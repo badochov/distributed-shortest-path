@@ -5,7 +5,6 @@ option go_package = "github.com/badochov/distributed-shortest-path/src/services/
 service Link {
   rpc Add(AddRequest) returns (AddResponse) {}
   rpc Init(InitRequest) returns (InitResponse) {}
-  rpc Min(MinRequest) returns (MinResponse) {}
   rpc Step(StepRequest) returns (StepResponse) {}
 }
 
@@ -26,23 +25,13 @@ message InitRequest {
 
 message InitResponse {}
 
-message MinRequest {
-  uint64 requestId = 1;
-}
-
-message MinResponse {
-  bool isSet = 1;
-  double distance = 2;
-  int64 vertexId = 3;
-}
-
 message StepRequest {
   int64 vetrtexId = 1;
-  int64 destId = 2;
+  double distance = 2;
   uint64 requestId = 3;
 }
 
 message StepResponse {
-  bool found = 1;
+  int64 vetrtexId = 1;
   double distance = 2;
 }

@@ -24,7 +24,6 @@ const _ = grpc.SupportPackageIsVersion7
 type LinkClient interface {
 	Add(ctx context.Context, in *AddRequest, opts ...grpc.CallOption) (*AddResponse, error)
 	Init(ctx context.Context, in *InitRequest, opts ...grpc.CallOption) (*InitResponse, error)
-	Min(ctx context.Context, in *MinRequest, opts ...grpc.CallOption) (*MinResponse, error)
 	Step(ctx context.Context, in *StepRequest, opts ...grpc.CallOption) (*StepResponse, error)
 }
 
@@ -54,15 +53,6 @@ func (c *linkClient) Init(ctx context.Context, in *InitRequest, opts ...grpc.Cal
 	return out, nil
 }
 
-func (c *linkClient) Min(ctx context.Context, in *MinRequest, opts ...grpc.CallOption) (*MinResponse, error) {
-	out := new(MinResponse)
-	err := c.cc.Invoke(ctx, "/Link/Min", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *linkClient) Step(ctx context.Context, in *StepRequest, opts ...grpc.CallOption) (*StepResponse, error) {
 	out := new(StepResponse)
 	err := c.cc.Invoke(ctx, "/Link/Step", in, out, opts...)
@@ -78,7 +68,6 @@ func (c *linkClient) Step(ctx context.Context, in *StepRequest, opts ...grpc.Cal
 type LinkServer interface {
 	Add(context.Context, *AddRequest) (*AddResponse, error)
 	Init(context.Context, *InitRequest) (*InitResponse, error)
-	Min(context.Context, *MinRequest) (*MinResponse, error)
 	Step(context.Context, *StepRequest) (*StepResponse, error)
 	mustEmbedUnimplementedLinkServer()
 }
@@ -92,9 +81,6 @@ func (UnimplementedLinkServer) Add(context.Context, *AddRequest) (*AddResponse, 
 }
 func (UnimplementedLinkServer) Init(context.Context, *InitRequest) (*InitResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Init not implemented")
-}
-func (UnimplementedLinkServer) Min(context.Context, *MinRequest) (*MinResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Min not implemented")
 }
 func (UnimplementedLinkServer) Step(context.Context, *StepRequest) (*StepResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Step not implemented")
@@ -148,24 +134,6 @@ func _Link_Init_Handler(srv interface{}, ctx context.Context, dec func(interface
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Link_Min_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MinRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(LinkServer).Min(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/Link/Min",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LinkServer).Min(ctx, req.(*MinRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Link_Step_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StepRequest)
 	if err := dec(in); err != nil {
@@ -198,10 +166,6 @@ var Link_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Init",
 			Handler:    _Link_Init_Handler,
-		},
-		{
-			MethodName: "Min",
-			Handler:    _Link_Min_Handler,
 		},
 		{
 			MethodName: "Step",

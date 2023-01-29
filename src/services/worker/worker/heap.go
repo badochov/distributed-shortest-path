@@ -3,85 +3,54 @@
 package worker
 
 import (
-	"sync"
+	"container/heap"
 
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 )
 
-type Node struct {
-	id       db.VertexId
-	distance float64
-	through  *Node
+// An Item is something we manage in a distance queue.
+type Item struct {
+	id       db.VertexId // The id of the item; arbitrary.
+	distance float64     // The distance of the item in the queue.
+	// The index is needed by update and is maintained by the heap.Interface methods.
+	index int // The index of the item in the heap.
 }
 
-type Heap struct {
-	elements []*Node
-	mutex    sync.RWMutex
+// A PriorityQueue implements heap.Interface and holds Items.
+type PriorityQueue []*Item
+
+func (pq PriorityQueue) Len() int { return len(pq) }
+
+func (pq PriorityQueue) Less(i, j int) bool {
+	// We want Pop to give us the highest, not lowest, distance so we use greater than here.
+	return pq[i].distance < pq[j].distance
 }
 
-func (h *Heap) Size() int {
-	h.mutex.RLock()
-	defer h.mutex.RUnlock()
-	return len(h.elements)
+func (pq PriorityQueue) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
+	pq[i].index = i
+	pq[j].index = j
 }
 
-// push an element to the heap, re-arrange the heap
-func (h *Heap) Push(element *Node) {
-	h.mutex.Lock()
-	defer h.mutex.Unlock()
-	h.elements = append(h.elements, element)
-	i := len(h.elements) - 1
-	for ; h.elements[i].distance < h.elements[parent(i)].distance; i = parent(i) {
-		h.swap(i, parent(i))
-	}
+func (pq *PriorityQueue) Push(x any) {
+	n := len(*pq)
+	item := x.(*Item)
+	item.index = n
+	*pq = append(*pq, item)
 }
 
-// pop the top of the heap, which is the min distance
-func (h *Heap) Pop() (i *Node) {
-	h.mutex.Lock()
-	defer h.mutex.Unlock()
-	i = h.elements[0]
-	h.elements[0] = h.elements[len(h.elements)-1]
-	h.elements = h.elements[:len(h.elements)-1]
-	h.rearrange(0)
-	return
+func (pq *PriorityQueue) Pop() any {
+	old := *pq
+	n := len(old)
+	item := old[n-1]
+	old[n-1] = nil  // avoid memory leak
+	item.index = -1 // for safety
+	*pq = old[0 : n-1]
+	return item
 }
 
-// pop the top of the heap, which is the min distance
-func (h *Heap) Top() (float64, db.VertexId) {
-	h.mutex.Lock()
-	defer h.mutex.Unlock()
-	return h.elements[0].distance, h.elements[0].id
-}
-
-// rearrange the heap
-func (h *Heap) rearrange(i int) {
-	smallest := i
-	left, right, size := leftChild(i), rightChild(i), len(h.elements)
-	if left < size && h.elements[left].distance < h.elements[smallest].distance {
-		smallest = left
-	}
-	if right < size && h.elements[right].distance < h.elements[smallest].distance {
-		smallest = right
-	}
-	if smallest != i {
-		h.swap(i, smallest)
-		h.rearrange(smallest)
-	}
-}
-
-func (h *Heap) swap(i, j int) {
-	h.elements[i], h.elements[j] = h.elements[j], h.elements[i]
-}
-
-func parent(i int) int {
-	return (i - 1) / 2
-}
-
-func leftChild(i int) int {
-	return 2*i + 1
-}
-
-func rightChild(i int) int {
-	return 2*i + 2
+// update modifies the distance and id of an Item in the queue.
+func (pq *PriorityQueue) update(item *Item, distance float64) {
+	item.distance = distance
+	heap.Fix(pq, item.index)
 }
