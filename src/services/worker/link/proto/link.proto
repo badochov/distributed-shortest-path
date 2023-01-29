@@ -33,11 +33,12 @@ message MinRequest {
 message MinResponse {
   bool isSet = 1;
   double distance = 2;
+  int64 vertexId = 3;
 }
 
 message StepRequest {
-  double distance = 1;
-  int64 to = 2;
+  int64 vetrtexId = 1;
+  int64 destId = 2;
   uint64 requestId = 3;
 }
 

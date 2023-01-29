@@ -18,8 +18,8 @@ import (
 type Worker interface {
 	Add(ctx context.Context, a, b int32) (int32, error) // Example
 	Init(ctx context.Context, minRegionId db.RegionId, maxRegionId db.RegionId, requestId api.RequestId) error
-	Min(ctx context.Context, requestId api.RequestId) (bool, float64, error)
-	Step(ctx context.Context, distance float64, to db.VertexId, requestId api.RequestId) (bool, float64, error)
+	Min(ctx context.Context, requestId api.RequestId) (bool, float64, db.VertexId, error)
+	Step(ctx context.Context, vertexId db.VertexId, destId db.VertexId, requestId api.RequestId) (bool, float64, error)
 }
 
 type Deps struct {
@@ -49,15 +49,15 @@ func (s *linkService) Init(ctx context.Context, req *proto.InitRequest) (*proto.
 }
 
 func (s *linkService) Min(ctx context.Context, req *proto.MinRequest) (*proto.MinResponse, error) {
-	isSet, distance, err := s.worker.Min(ctx, api.RequestId(req.RequestId))
+	isSet, distance, vertexId, err := s.worker.Min(ctx, api.RequestId(req.RequestId))
 	if err != nil {
 		return nil, err
 	}
-	return &proto.MinResponse{IsSet: isSet, Distance: distance}, nil
+	return &proto.MinResponse{IsSet: isSet, Distance: distance, VertexId: vertexId}, nil
 }
 
 func (s *linkService) Step(ctx context.Context, req *proto.StepRequest) (*proto.StepResponse, error) {
-	found, distance, err := s.worker.Step(ctx, req.Distance, req.To, api.RequestId(req.RequestId))
+	found, distance, err := s.worker.Step(ctx, req.VetrtexId, req.DestId, api.RequestId(req.RequestId))
 	if err != nil {
 		return nil, err
 	}

@@ -38,6 +38,7 @@ type workerData struct {
 
 type executionData struct {
 	heap       *Heap
+	visited    map[db.VertexId]bool
 	leftChild  link.Link // leftChild == nil iff left child does not exist
 	rightChild link.Link // rightChild == nil iff right child does not exist
 }
@@ -64,7 +65,7 @@ func randomId(min db.RegionId, max db.RegionId) uint16 {
 
 func (w *worker) Init(ctx context.Context, minRegionId db.RegionId, maxRegionId db.RegionId, requestId api.RequestId) error {
 	if minRegionId == maxRegionId {
-		w.executions[requestId] = executionData{&Heap{}, nil, nil}
+		w.executions[requestId] = executionData{&Heap{}, make(map[db.VertexId]bool, len(w.data.vertices)), nil, nil}
 		return nil
 	}
 	leftChildId := randomId(minRegionId, (minRegionId+maxRegionId)/2)
@@ -80,7 +81,7 @@ func (w *worker) Init(ctx context.Context, minRegionId db.RegionId, maxRegionId 
 	if err != nil {
 		return err
 	}
-	w.executions[requestId] = executionData{&Heap{}, leftChild, rightChild}
+	w.executions[requestId] = executionData{&Heap{}, make(map[db.VertexId]bool, len(w.data.vertices)), leftChild, rightChild}
 	err = leftChild.Init(ctx, minRegionId, (minRegionId+maxRegionId)/2, requestId)
 	if err != nil {
 		return err
@@ -92,43 +93,46 @@ func (w *worker) Init(ctx context.Context, minRegionId db.RegionId, maxRegionId 
 	return nil
 }
 
-func minDistance(isSet1 bool, distance1 float64, isSet2 bool, distance2 float64) (bool, float64) {
+func minDistanceVertex(isSet1 bool, distance1 float64, vertexId1 db.VertexId,
+	isSet2 bool, distance2 float64, vertexId2 db.VertexId) (bool, float64, db.VertexId) {
 	if isSet1 == false {
-		return isSet2, distance2
+		return isSet2, distance2, vertexId2
 	} else if isSet2 == false {
-		return isSet1, distance1
+		return isSet1, distance1, vertexId1
 	} else if distance1 < distance2 {
-		return true, distance1
+		return true, distance1, vertexId1
 	} else {
-		return true, distance2
+		return true, distance2, vertexId2
 	}
 }
 
-func (w *worker) Min(ctx context.Context, requestId api.RequestId) (bool, float64, error) {
+func (w *worker) Min(ctx context.Context, requestId api.RequestId) (bool, float64, db.VertexId, error) {
 	isSetLeft, isSetRight, isSet := false, false, false
 	var distanceLeft, distanceRight, distance float64
+	var vertexIdLeft, vertexIdRight, vertexId db.VertexId
 	var err error
 	if w.executions[requestId].heap.Size() > 0 {
-		isSet, distance = true, w.executions[requestId].heap.Min()
+		isSet = true
+		distance, vertexId = w.executions[requestId].heap.Top()
 	}
 	if w.executions[requestId].leftChild != nil {
-		isSetLeft, distanceLeft, err = w.executions[requestId].leftChild.Min(ctx, requestId)
+		isSetLeft, distanceLeft, vertexIdLeft, err = w.executions[requestId].leftChild.Min(ctx, requestId)
 		if err != nil {
-			return false, 0, err
+			return false, 0, 0, err
 		}
-		isSet, distance = minDistance(isSet, distance, isSetLeft, distanceLeft)
+		isSet, distance, vertexId = minDistanceVertex(isSet, distance, vertexId, isSetLeft, distanceLeft, vertexIdLeft)
 	}
 	if w.executions[requestId].rightChild != nil {
-		isSetRight, distanceRight, err = w.executions[requestId].rightChild.Min(ctx, requestId)
+		isSetRight, distanceRight, vertexIdRight, err = w.executions[requestId].rightChild.Min(ctx, requestId)
 		if err != nil {
-			return false, 0, err
+			return false, 0, 0, err
 		}
-		isSet, distance = minDistance(isSet, distance, isSetRight, distanceRight)
+		isSet, distance, vertexId = minDistanceVertex(isSet, distance, vertexId, isSetRight, distanceRight, vertexIdRight)
 	}
-	return isSet, distance, nil
+	return isSet, distance, vertexId, nil
 }
 
-func (w *worker) Step(ctx context.Context, distance float64, to db.VertexId, requestId api.RequestId) (bool, float64, error) {
+func (w *worker) Step(ctx context.Context, vertexId db.VertexId, destId db.VertexId, requestId api.RequestId) (bool, float64, error) {
 	return false, 0, nil
 }
 

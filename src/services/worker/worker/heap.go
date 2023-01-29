@@ -48,10 +48,10 @@ func (h *Heap) Pop() (i *Node) {
 }
 
 // pop the top of the heap, which is the min distance
-func (h *Heap) Min() float64 {
+func (h *Heap) Top() (float64, db.VertexId) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
-	return h.elements[0].distance
+	return h.elements[0].distance, h.elements[0].id
 }
 
 // rearrange the heap
