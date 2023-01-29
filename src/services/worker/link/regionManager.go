@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"sync"
 
+	"log"
+
 	"github.com/badochov/distributed-shortest-path/src/services/worker/discoverer"
 	"github.com/hashicorp/go-multierror"
 	"golang.org/x/exp/slices"
@@ -26,6 +28,7 @@ type regionDialer struct {
 }
 
 func (r *regionDialer) UpdateInstances(ctx context.Context, instances []discoverer.WorkerInstance) error {
+	log.Println("Updating instances", instances)
 	r.rwlock.Lock()
 	defer r.rwlock.Unlock()
 
@@ -43,7 +46,7 @@ func (r *regionDialer) UpdateInstances(ctx context.Context, instances []discover
 		if ok {
 			delete(r.links, a) // delete existing, because remaining ones are due to be removed
 		} else {
-			l, err = New(ctx, i.Ip)
+			l, err = New(ctx, string(a))
 			if err != nil {
 				err = multierror.Append(err, fmt.Errorf("error opening link to %s, %w", a, err))
 			}

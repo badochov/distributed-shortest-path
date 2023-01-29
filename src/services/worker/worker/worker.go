@@ -87,20 +87,21 @@ func (w *worker) LoadRegionData(ctx context.Context) (err error) {
 }
 
 func (w *worker) initDiscoverer(ctx context.Context) error {
-	err := w.discoverer.Run(ctx)
-	if err != nil {
+	if err := w.discoverer.Run(ctx); err != nil {
 		return err
 	}
 	go func() {
-		select {
-		// some worker changed its status, e.g. failed (or went up)
-		case status := <-w.discoverer.InstanceStatuses():
-			w.handleInstanceStatus(status)
-		// set of workers in region has changed
-		case data := <-w.discoverer.RegionDataChan():
-			w.handleRegionData(ctx, data)
-		case <-ctx.Done():
-			return
+		for {
+			select {
+			// some worker changed its status, e.g. failed (or went up)
+			case status := <-w.discoverer.InstanceStatuses():
+				w.handleInstanceStatus(status)
+			// set of workers in region has changed
+			case data := <-w.discoverer.RegionDataChan():
+				w.handleRegionData(ctx, data)
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 	return nil
@@ -115,6 +116,7 @@ func (w *worker) handleInstanceStatus(status discoverer.WorkerInstanceStatus) {
 }
 
 func (w *worker) handleRegionData(ctx context.Context, data discoverer.RegionData) {
+	log.Println("Handling region data change", data)
 	l, ok := w.links[data.RegionId]
 	if !ok {
 		l = link.NewRegionDialer(w.linkPort)

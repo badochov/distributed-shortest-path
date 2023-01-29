@@ -75,26 +75,13 @@ kubectl run postgresql-dev-client --rm --tty -i --restart='Never' --namespace po
 2. Performing requests:
    - RecalculateDS
         ```bash
-        ./curl.sh /recalculate_ds -H "Content-Type: application/json"
+        ./curl.sh /recalculate_ds
         ```
 
    - ShortestPath
         ```bash
-        ./curl.sh /shortest_path -H "Content-Type: application/json"  -d '"from":21911863, "to":21911883}'
+        ./curl.sh /shortest_path -H "Content-Type: application/json"  -d '{"from":21911863, "to":21911883}'
         ```
-# Example requests:
-
-RecalculateDS
-```bash
-/recalculate_ds -H "Content-Type: application/json" 
-```
-
-ShortestPath
-```bash
-docker exec --interactive --tty docker-kind-demo \
-curl -H "Content-Type: application/json" manager.shortest-path.svc.cluster.local:8080/shortest_path -d '{"from":21911863, "to":21911883}'
-```
-
 
 
 

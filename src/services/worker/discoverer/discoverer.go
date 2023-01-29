@@ -2,6 +2,7 @@ package discoverer
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
@@ -82,6 +83,7 @@ func (d *discoverer) Run(ctx context.Context) error {
 
 	go func() {
 		for ev := range endpointWatcher.ResultChan() {
+			fmt.Println("ENDPOINT WATCHER")
 			endpoints := ev.Object.(*v1.Endpoints)
 
 			regStr := endpoints.Labels["region"]
@@ -107,6 +109,7 @@ func (d *discoverer) Run(ctx context.Context) error {
 	d.statuses = podCh
 	go func() {
 		for ev := range podWatcher.ResultChan() {
+			fmt.Println("POD WATCHER")
 			pod := ev.Object.(*v1.Pod)
 			regStr := pod.Labels["region"]
 			regId, err := strconv.Atoi(regStr)
