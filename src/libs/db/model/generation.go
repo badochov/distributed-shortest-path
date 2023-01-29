@@ -10,5 +10,5 @@ const (
 
 type Generation struct {
 	Generation     uint16
-	GenerationType `gorm:"primary_key"`
+	GenerationType `gorm:"primaryKey;autoIncrement:false"`
 }
