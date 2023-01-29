@@ -22,6 +22,16 @@ Project calculating shortest path in a distributed graph.
    ./cluster/deploy.sh --local
    ```
 
+### Querying manager
+Inspired by this [guide](https://dustinspecker.com/posts/using-docker-to-resolve-kubernetes-services-in-a-kind-cluster/).
+1.
+
+
+#### Uploading OSM map
+```bash
+./import_graph.sh
+```
+
 ### Updates
 #### Manager
 ```bash
@@ -72,6 +82,19 @@ kubectl run postgresql-dev-client --rm --tty -i --restart='Never' --namespace po
         ```bash
         ./curl.sh /shortest_path -H "Content-Type: application/json"  -d '"from":21911863, "to":21911883}'
         ```
+# Example requests:
+
+RecalculateDS
+```bash
+/recalculate_ds -H "Content-Type: application/json" 
+```
+
+ShortestPath
+```bash
+docker exec --interactive --tty docker-kind-demo \
+curl -H "Content-Type: application/json" manager.shortest-path.svc.cluster.local:8080/shortest_path -d '"from":21911863, "to":21911883}'
+```
+>>>>>>> Stashed changes
 
 
 
