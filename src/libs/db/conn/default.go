@@ -6,6 +6,7 @@ import (
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func Default() (*gorm.DB, error) {
@@ -19,5 +20,5 @@ func Default() (*gorm.DB, error) {
 
 	dialector := postgres.Open(dsn)
 
-	return gorm.Open(dialector)
+	return gorm.Open(dialector, &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
 }
