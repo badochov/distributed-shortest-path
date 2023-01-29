@@ -4,6 +4,7 @@ import (
 	"container/heap"
 	"context"
 	"log"
+	"math"
 	"math/rand"
 
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
@@ -39,22 +40,23 @@ type workerData struct {
 }
 
 type executionData struct {
-	queue      PriorityQueue
-	inQueue    map[db.VertexId]*Item
-	processed  map[db.VertexId]bool
-	leftChild  link.Link // leftChild == nil iff left child does not exist
-	rightChild link.Link // rightChild == nil iff right child does not exist
+	queue     PriorityQueue
+	inQueue   map[db.VertexId]*Item
+	processed map[db.VertexId]bool
+	// leftChild  link.Link // leftChild == nil iff left child does not exist
+	// rightChild link.Link // rightChild == nil iff right child does not exist
 }
 
 type worker struct {
-	db         db.DB
-	discoverer discoverer.Discoverer
-	generation db.Generation
-	regionId   db.RegionId
-	data       workerData
-	links      map[db.RegionId]link.RegionManager
-	linkPort   int
-	executions map[api.RequestId]executionData
+	db             db.DB
+	discoverer     discoverer.Discoverer
+	generation     db.Generation
+	regionId       db.RegionId
+	data           workerData
+	links          map[db.RegionId]link.RegionManager
+	linkPort       int
+	executions     map[api.RequestId]executionData
+	executionLinks map[api.RequestId][]link.Link
 }
 
 func (w *worker) CalculateArcFlags(ctx context.Context) error {
@@ -67,36 +69,41 @@ func randomId(min db.RegionId, max db.RegionId) uint16 {
 }
 
 func (w *worker) Init(ctx context.Context, minRegionId db.RegionId, maxRegionId db.RegionId, requestId api.RequestId) error {
-	if minRegionId == maxRegionId {
-		w.executions[requestId] = executionData{make(PriorityQueue, 0), make(map[db.VertexId]*Item), make(map[db.VertexId]bool), nil, nil}
-		return nil
-	}
-	leftChildId := randomId(minRegionId, (minRegionId+maxRegionId)/2)
-	rightChildId := randomId((minRegionId+maxRegionId)/2+1, maxRegionId)
 
-	var leftChild, rightChild link.Link
-	var err error
-	_, leftChild, err = w.links[leftChildId].GetLink()
-	if err != nil {
-		return err
-	}
-	_, rightChild, err = w.links[rightChildId].GetLink()
-	if err != nil {
-		return err
-	}
-	w.executions[requestId] = executionData{make(PriorityQueue, 0), make(map[db.VertexId]*Item, 0), make(map[db.VertexId]bool), leftChild, rightChild}
-	err = leftChild.Init(ctx, minRegionId, (minRegionId+maxRegionId)/2, requestId)
-	if err != nil {
-		return err
-	}
-	err = rightChild.Init(ctx, (minRegionId+maxRegionId)/2+1, maxRegionId, requestId)
-	if err != nil {
-		return err
-	}
+	w.executions[requestId] = executionData{make(PriorityQueue, 0), make(map[db.VertexId]*Item), make(map[db.VertexId]bool)}
 	return nil
+
+	// if minRegionId >= maxRegionId {
+	// 	w.executions[requestId] = executionData{make(PriorityQueue, 0), make(map[db.VertexId]*Item), make(map[db.VertexId]bool), nil, nil}
+	// 	return nil
+	// }
+	// leftChildId := minRegionId
+	// rightChildId := (minRegionId+maxRegionId)/2 + 1
+
+	// var leftChild, rightChild link.Link
+	// var err error
+	// _, leftChild, err = w.links[leftChildId].GetLink()
+	// if err != nil {
+	// 	return err
+	// }
+	// _, rightChild, err = w.links[rightChildId].GetLink()
+	// if err != nil {
+	// 	return err
+	// }
+	// w.executions[requestId] = executionData{make(PriorityQueue, 0), make(map[db.VertexId]*Item, 0), make(map[db.VertexId]bool), leftChild, rightChild}
+	// err = leftChild.Init(ctx, minRegionId+1, (minRegionId+maxRegionId)/2, requestId)
+	// if err != nil {
+	// 	return err
+	// }
+	// err = rightChild.Init(ctx, (minRegionId+maxRegionId)/2+2, maxRegionId, requestId)
+	// if err != nil {
+	// 	return err
+	// }
+	// return nil
 }
 
 func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float64, requestId api.RequestId) (db.VertexId, float64, error) {
+	log.Println("vertex ", vertexId, " distance ", distance, " request id ", requestId)
 	queue, inQueue, processed := w.executions[requestId].queue, w.executions[requestId].inQueue, w.executions[requestId].processed
 
 	if w.data.edgeTargets[vertexId] {
@@ -116,7 +123,7 @@ func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float6
 		}
 	}
 
-	outVertexId, outDistance := db.VertexId(0), 1.7e+308
+	outVertexId, outDistance := db.VertexId(0), math.MaxFloat64
 	for queue.Len() > 0 {
 		item := heap.Pop(&queue).(*Item)
 		if !processed[item.id] {
@@ -125,40 +132,60 @@ func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float6
 		}
 	}
 
-	if w.executions[requestId].leftChild != nil {
-		leftVertexId, leftDistance, err := w.executions[requestId].leftChild.Step(ctx, vertexId, distance, requestId)
-		if err != nil {
-			return 0, 0, err
-		}
-		if leftDistance < outDistance {
-			outVertexId, outDistance = leftVertexId, leftDistance
-		}
-	}
-	if w.executions[requestId].rightChild != nil {
-		rightVertexId, rightDistance, err := w.executions[requestId].rightChild.Step(ctx, vertexId, distance, requestId)
-		if err != nil {
-			return 0, 0, err
-		}
-		if rightDistance < outDistance {
-			outVertexId, outDistance = rightVertexId, rightDistance
-		}
-	}
+	// if w.executions[requestId].leftChild != nil {
+	// 	leftVertexId, leftDistance, err := w.executions[requestId].leftChild.Step(ctx, vertexId, distance, requestId)
+	// 	if err != nil {
+	// 		return 0, 0, err
+	// 	}
+	// 	if leftDistance < outDistance {
+	// 		outVertexId, outDistance = leftVertexId, leftDistance
+	// 	}
+	// }
+	// if w.executions[requestId].rightChild != nil {
+	// 	rightVertexId, rightDistance, err := w.executions[requestId].rightChild.Step(ctx, vertexId, distance, requestId)
+	// 	if err != nil {
+	// 		return 0, 0, err
+	// 	}
+	// 	if rightDistance < outDistance {
+	// 		outVertexId, outDistance = rightVertexId, rightDistance
+	// 	}
+	// }
 	return outVertexId, outDistance, nil
 }
 
 func (w *worker) ShortestPath(ctx context.Context, args service.ShortestPathArgs) (service.ShortestPathResult, error) {
 	var err error
-	err = w.Init(ctx, 0, uint16(len(w.links)-1), args.RequestId)
-	if err != nil {
-		return service.ShortestPathResult{}, err
+
+	w.executionLinks[args.RequestId] = make([]link.Link, len(w.links))
+	i := 0
+	for _, regionManager := range w.links {
+		_, w.executionLinks[args.RequestId][i], err = regionManager.GetLink()
+		if err != nil {
+			return service.ShortestPathResult{}, err
+		}
+		w.executionLinks[args.RequestId][i].Init(ctx, 0, 0, args.RequestId)
+		i++
 	}
-	// vertexId, distance := args.From, float64(0)
-	// for vertexId != args.To {
-	// 	vertexId, distance, err = w.Step(ctx, vertexId, distance, args.RequestId)
-	// 	if err != nil {
-	// 		return service.ShortestPathResult{}, err
-	// 	}
-	// }
+
+	// queue, inQueue := w.executions[args.RequestId].queue, w.executions[args.RequestId].inQueue
+	// newItem := &Item{id: args.From, distance: 0}
+	// inQueue[args.From] = newItem
+	// heap.Push(&queue, newItem)
+
+	vertexId, distance := args.From, float64(0)
+	for vertexId != args.To || distance != math.MaxFloat64 {
+		newVertexId, newDistance := db.VertexId(0), math.MaxFloat64
+		for _, link := range w.executionLinks[args.RequestId] {
+			linkVertexId, linkDistance, linkErr := link.Step(ctx, vertexId, distance, args.RequestId)
+			if linkErr != nil {
+				return service.ShortestPathResult{}, linkErr
+			}
+			if linkDistance < newDistance {
+				newVertexId, newDistance = linkVertexId, linkDistance
+			}
+		}
+		vertexId, distance = newVertexId, newDistance
+	}
 	return service.ShortestPathResult{}, nil
 }
 
@@ -183,10 +210,10 @@ func (w *worker) LoadRegionData(ctx context.Context) (err error) {
 			w.data.edgeTargets[e.To] = true
 		}
 	}
-	w.data.arcFlags, err = w.db.GetArcFlags(ctx, eIds, w.generation)
-	if err != nil {
-		return
-	}
+	// w.data.arcFlags, err = w.db.GetArcFlags(ctx, eIds, w.generation)
+	// if err != nil {
+	// 	return
+	// }
 
 	w.data.neighbouringVerticesRegions, err = w.db.GetEdgeToRegionMapping(ctx, w.regionId, w.generation)
 	if err != nil {
@@ -242,12 +269,13 @@ func (w *worker) handleRegionData(ctx context.Context, data discoverer.RegionDat
 
 func New(deps Deps) (Worker, error) {
 	w := &worker{
-		db:         deps.Db,
-		discoverer: deps.Discoverer,
-		regionId:   deps.RegionID,
-		linkPort:   deps.LinkPort,
-		links:      make(map[db.RegionId]link.RegionManager),
-		executions: make(map[api.RequestId]executionData),
+		db:             deps.Db,
+		discoverer:     deps.Discoverer,
+		regionId:       deps.RegionID,
+		linkPort:       deps.LinkPort,
+		links:          make(map[db.RegionId]link.RegionManager),
+		executions:     make(map[api.RequestId]executionData),
+		executionLinks: make(map[api.RequestId][]link.Link),
 	}
 	if err := w.initDiscoverer(deps.Context); err != nil {
 		return nil, err

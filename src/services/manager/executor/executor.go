@@ -145,10 +145,10 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 	}
 
 	// Shutdown worker service.
-	log.Println("Shutting down workers")
-	if err := e.rescaleAllRegions(ctx, 0); err != nil {
-		return wrap(err)
-	}
+	// log.Println("Shutting down workers")
+	// if err := e.rescaleAllRegions(ctx, 0); err != nil {
+	// 	return wrap(err)
+	// }
 	if err := e.incNextGen(ctx); err != nil {
 		return wrap(err) // TODO[wprzytula]: consider inc iff not yet incremented
 	}
@@ -160,26 +160,26 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 		return wrap(err)
 	}
 	// Start worker service.
-	log.Println("Starting workers for arc flags calculation")
-	if err := e.rescaleAllRegions(ctx, e.defaultWorkerReplicas); err != nil {
-		return wrap(err)
-	}
+	// log.Println("Starting workers for arc flags calculation")
+	// if err := e.rescaleAllRegions(ctx, e.defaultWorkerReplicas); err != nil {
+	// 	return wrap(err)
+	// }
 	log.Println("Calculating arc flags")
 	// TODO [wprzytula] wait for workers to be alive (eg. Add Healthz method to client and wait for it to respond with success)
-	if err := e.calculateArcFlags(ctx); err != nil {
-		return wrap(err)
-	}
+	// if err := e.calculateArcFlags(ctx); err != nil {
+	// 	return wrap(err)
+	// }
 	if err := e.setGenToNext(ctx); err != nil {
 		return wrap(err)
 	}
 	log.Println("Restarting workers")
 	// Restart worker service.
-	if err := e.rescaleAllRegions(ctx, 0); err != nil {
-		return wrap(err)
-	}
-	if err := e.rescaleAllRegions(ctx, e.defaultWorkerReplicas); err != nil {
-		return wrap(err)
-	}
+	// if err := e.rescaleAllRegions(ctx, 0); err != nil {
+	// 	return wrap(err)
+	// }
+	// if err := e.rescaleAllRegions(ctx, e.defaultWorkerReplicas); err != nil {
+	// 	return wrap(err)
+	// }
 	// TODO [wprzytula] wait for workers to be alive (eg. Add Healthz method to client and wait for it to respond with success)
 
 	return api.RecalculateDsResponse{}, http.StatusOK, nil
