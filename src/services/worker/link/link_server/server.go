@@ -53,6 +53,7 @@ func New(deps Deps) Server {
 	if err != nil {
 		panic(err)
 	}
+	defer zapLogger.Sync()
 	s := grpc.NewServer(
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
 			grpc_zap.StreamServerInterceptor(zapLogger),
