@@ -46,3 +46,14 @@ message StepResponse {
   bool found = 1;
   double distance = 2;
 }
+
+message StepRequest {
+  double distance = 1;
+  int64 to = 2;
+  uint64 requestId = 3;
+}
+
+message StepResponse {
+  bool found = 1;
+  double distance = 2;
+}
