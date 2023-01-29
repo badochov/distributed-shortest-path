@@ -92,6 +92,42 @@ func (w *worker) Init(ctx context.Context, minRegionId db.RegionId, maxRegionId 
 	return nil
 }
 
+func minDistance(isSet1 bool, distance1 float64, isSet2 bool, distance2 float64) (bool, float64) {
+	if isSet1 == false {
+		return isSet2, distance2
+	} else if isSet2 == false {
+		return isSet1, distance1
+	} else if distance1 < distance2 {
+		return true, distance1
+	} else {
+		return true, distance2
+	}
+}
+
+func (w *worker) Min(ctx context.Context, requestId api.RequestId) (bool, float64, error) {
+	isSetLeft, isSetRight, isSet := false, false, false
+	var distanceLeft, distanceRight, distance float64
+	var err error
+	if w.executions[requestId].heap.Size() > 0 {
+		isSet, distance = true, w.executions[requestId].heap.Min()
+	}
+	if w.executions[requestId].leftChild != nil {
+		isSetLeft, distanceLeft, err = w.executions[requestId].leftChild.Min(ctx, requestId)
+		if err != nil {
+			return false, 0, err
+		}
+		isSet, distance = minDistance(isSet, distance, isSetLeft, distanceLeft)
+	}
+	if w.executions[requestId].rightChild != nil {
+		isSetRight, distanceRight, err = w.executions[requestId].rightChild.Min(ctx, requestId)
+		if err != nil {
+			return false, 0, err
+		}
+		isSet, distance = minDistance(isSet, distance, isSetRight, distanceRight)
+	}
+	return isSet, distance, nil
+}
+
 func (w *worker) ShortestPath(ctx context.Context, args service.ShortestPathArgs) (service.ShortestPathResult, error) {
 	var err error
 	err = w.Init(ctx, 0, db.RegionId(len(w.links)-1), args.RequestId)

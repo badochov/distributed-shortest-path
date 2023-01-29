@@ -47,6 +47,13 @@ func (h *Heap) Pop() (i *Node) {
 	return
 }
 
+// pop the top of the heap, which is the min distance
+func (h *Heap) Min() float64 {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+	return h.elements[0].distance
+}
+
 // rearrange the heap
 func (h *Heap) rearrange(i int) {
 	smallest := i

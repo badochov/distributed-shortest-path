@@ -2,7 +2,6 @@ package link
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/api"
@@ -26,10 +25,15 @@ func (l *remoteLink) Add(ctx context.Context, a, b int32) (int32, error) {
 
 func (l *remoteLink) Init(ctx context.Context, minRegionId db.RegionId, maxRegionId db.RegionId, requestId api.RequestId) error {
 	_, err := l.client.Init(ctx, &proto.InitRequest{MinRegionId: uint32(minRegionId), MaxRegionId: uint32(maxRegionId), RequestId: uint64(requestId)})
+	return err
+}
+
+func (l *remoteLink) Min(ctx context.Context, requestId api.RequestId) (bool, float64, error) {
+	resp, err := l.client.Min(ctx, &proto.MinRequest{RequestId: uint64(requestId)})
 	if err != nil {
-		return fmt.Errorf("message, %w", err)
+		return false, 0, err
 	}
-	return nil
+	return resp.IsSet, resp.Distance, nil
 }
 
 var _ Link = &remoteLink{}
