@@ -52,22 +52,20 @@ kubectl run postgresql-dev-client --rm --tty -i --restart='Never' --namespace po
 ```
 
 #### Sending requests to Manager running on kind:
-In order to send requests to Manager, you need a docker container running in kind network.
-Follow 2-4 of tutorial https://dustinspecker.com/posts/using-docker-to-resolve-kubernetes-services-in-a-kind-cluster/
+1. Setup
+    ```bash
+    ./setup_curl_container.sh
+    ```
+2. Performing requests:
+   - RecalculateDS
+        ```bash
+        ./curl.sh /recalculate_ds -H "Content-Type: application/json"
+        ```
 
-# Example requests:
-
-RecalculateDS
-```bash
-docker exec --interactive --tty docker-kind-demo \
-curl -H "Content-Type: application/json" manager.shortest-path.svc.cluster.local:8080/recalculate_ds
-```
-
-ShortestPath
-```bash
-docker exec --interactive --tty docker-kind-demo \
-curl -H "Content-Type: application/json" manager.shortest-path.svc.cluster.local:8080/shortest_path -d '"from":21911863, "to":21911883}'
-```
+   - ShortestPath
+        ```bash
+        ./curl.sh /shortest_path -H "Content-Type: application/json"  -d '"from":21911863, "to":21911883}'
+        ```
 
 
 
