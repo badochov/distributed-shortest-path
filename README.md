@@ -5,7 +5,7 @@ Project calculating shortest path in a distributed graph.
 ### Dependencies:
 - Go
 - kind
-  - other local version of kubernetes such as `minikube` may be used, but then you're on your own with setting up the cluster and uploading docker images to it. 
+  - other local version of kubernetes such as `minikube` may be used, but then you're on your own with setting up the cluster and uploading docker images to it.
 - kubectl
 - docker
 
@@ -45,6 +45,11 @@ Project calculating shortest path in a distributed graph.
     (cd src && go generate)
     ```
 
+#### Manual connecting to Postgres:
+```bash
+kubectl run postgresql-dev-client --rm --tty -i --restart='Never' --namespace postgres --image docker.io/bitnami/postgresql:14.1.0-debian-10-r80 --env="PGPASSWORD=psltest" \
+--command -- psql --host postgres -U admin -d postgresdb -p 5432
+```
 
 
 
