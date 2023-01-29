@@ -21,25 +21,17 @@ func (c *Cleaner) truncateTable(ctx context.Context, table schema.Tabler) error 
 	return c.con.WithContext(ctx).Exec(fmt.Sprintf(`TRUNCATE "%s" CASCADE;`, table.TableName())).Error
 }
 
+func (c *Cleaner) getAllTables() []schema.Tabler {
+	return []schema.Tabler{c.q.Generation, c.q.ArcFlag, c.q.Edge, c.q.Vertex, c.q.RegionBinding}
+}
+
 func (c *Cleaner) Clean(ctx context.Context) error {
 	var err error
-
-	if delErr := c.truncateTable(ctx, c.q.Generation); delErr != nil {
-		err = multierror.Append(err, delErr)
+	for _, t := range c.getAllTables() {
+		if delErr := c.truncateTable(ctx, t); delErr != nil {
+			err = multierror.Append(err, delErr)
+		}
 	}
-	if delErr := c.truncateTable(ctx, c.q.ArcFlag); delErr != nil {
-		err = multierror.Append(err, delErr)
-	}
-	if delErr := c.truncateTable(ctx, c.q.Edge); delErr != nil {
-		err = multierror.Append(err, delErr)
-	}
-	if delErr := c.truncateTable(ctx, c.q.RegionBinding); delErr != nil {
-		err = multierror.Append(err, delErr)
-	}
-	if delErr := c.truncateTable(ctx, c.q.Vertex); delErr != nil {
-		err = multierror.Append(err, delErr)
-	}
-
 	return err
 }
 

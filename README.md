@@ -38,6 +38,12 @@ Project calculating shortest path in a distributed graph.
 3. ```bash
     (cd src && go generate)
    ```
+4. If new models are adjust the list in `func (c*Cleaner) getAllTables()` in `src/libs/db/cleaner/cleaner.go`.
+
+#### Cleaning postgres
+```bash
+./clean_postgres.sh
+```
 
 #### GRPC proto
 1. Update grpc proto in `src/services/worker/link/proto/link.proto`.
