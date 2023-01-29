@@ -92,9 +92,9 @@ RecalculateDS
 ShortestPath
 ```bash
 docker exec --interactive --tty docker-kind-demo \
-curl -H "Content-Type: application/json" manager.shortest-path.svc.cluster.local:8080/shortest_path -d '"from":21911863, "to":21911883}'
+curl -H "Content-Type: application/json" manager.shortest-path.svc.cluster.local:8080/shortest_path -d '{"from":21911863, "to":21911883}'
 ```
->>>>>>> Stashed changes
+
 
 
 
