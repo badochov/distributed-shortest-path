@@ -256,7 +256,7 @@ func (e *executor) divideIntoRegions(ctx context.Context) error {
 	// TODO [wprzytula] Think if retries should be implemented and how.
 	rd := regionDivider{
 		db:         e.db,
-		generation: e.generation,
+		generation: e.nextGeneration,
 	}
 	return rd.divideIntoRegions(ctx, len(e.clients)-1)
 }
