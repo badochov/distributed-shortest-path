@@ -1,0 +1,14 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: osm-map-import
+  namespace: shortest-path
+spec:
+  template:
+    spec:
+      containers:
+        - name: osm-map-importer
+          image: shortest-path/osm_map_importer:0.0.1
+          args: ["--address", "manager.shortest-path.svc.cluster.local:8080"]
+      restartPolicy: Never
+  backoffLimit: 4
