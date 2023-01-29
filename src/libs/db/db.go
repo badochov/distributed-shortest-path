@@ -110,81 +110,59 @@ func (d db) GetEdgesFrom(ctx context.Context, from []VertexId, generation Genera
 	return es, nil
 }
 
-func (d db) SetNextGeneration(ctx context.Context, generation Generation) error {
+func (d db) setGeneration(ctx context.Context, generation Generation, genType model.GenerationType) error {
 	g := d.q.Generation
-	c, err := d.q.WithContext(ctx).Generation.Where(g.Next).Update(g.Generation, generation)
+	c, err := d.q.WithContext(ctx).Generation.Where(g.GenerationType.Eq(uint8(genType))).Update(g.Generation, generation)
 	if err != nil {
 		return err
 	}
 	if c.RowsAffected == 0 {
 		return d.q.WithContext(ctx).Generation.Create(&model.Generation{
-			Generation: generation,
-			Next:       true,
+			Generation:     generation,
+			GenerationType: genType,
 		})
 	}
 	return nil
+}
+
+func (d db) SetNextGeneration(ctx context.Context, generation Generation) error {
+	return d.setGeneration(ctx, generation, model.GenerationNext)
 }
 
 func (d db) SetActiveGeneration(ctx context.Context, generation Generation) error {
-	g := d.q.Generation
-	c, err := d.q.WithContext(ctx).Generation.Where(g.Active).Update(g.Generation, generation)
-	if err != nil {
-		return err
-	}
-	if c.RowsAffected == 0 {
-		return d.q.WithContext(ctx).Generation.Create(&model.Generation{
-			Generation: generation,
-			Active:     true,
-		})
-	}
-	return nil
-}
-
-func (d db) GetCurrentGeneration(ctx context.Context) (Generation, error) {
-	g := d.q.Generation
-	r, err := d.q.WithContext(ctx).Generation.Where(g.Current).Attrs(g.Current, g.Generation.Zero()).FirstOrCreate()
-	if err != nil {
-		return 0, err
-	}
-	return r.Generation, nil
-}
-
-func (d db) GetNextGeneration(ctx context.Context) (Generation, error) {
-	g := d.q.Generation
-	r, err := d.q.WithContext(ctx).Generation.Where(g.Next).Attrs(g.Next, g.Generation.Zero()).FirstOrCreate()
-	if err != nil {
-		return 0, err
-	}
-	return r.Generation, nil
-}
-
-func (d db) GetActiveGeneration(ctx context.Context) (Generation, error) {
-	g := d.q.Generation
-	r, err := d.q.WithContext(ctx).Generation.Where(g.Active).Attrs(g.Active, g.Generation.Zero()).FirstOrCreate()
-	if err != nil {
-		return 0, err
-	}
-	return r.Generation, nil
+	return d.setGeneration(ctx, generation, model.GenerationActive)
 }
 
 func (d db) SetCurrentGeneration(ctx context.Context, generation Generation) error {
+	return d.setGeneration(ctx, generation, model.GenerationCurrent)
+}
+
+func (d db) getGeneration(ctx context.Context, genType model.GenerationType) (Generation, error) {
 	g := d.q.Generation
-	c, err := d.q.WithContext(ctx).Generation.Where(g.Current).Update(g.Generation, generation)
+	r, err := d.q.WithContext(ctx).Generation.Where(g.GenerationType.Eq(uint8(genType))).
+		Attrs(g.GenerationType.Value(uint8(genType)), g.Generation.Zero()).FirstOrCreate()
 	if err != nil {
-		return err
+		return 0, err
 	}
-	if c.RowsAffected == 0 {
-		return d.q.WithContext(ctx).Generation.Create(&model.Generation{
-			Generation: generation,
-			Current:    true,
-		})
-	}
-	return nil
+	return r.Generation, nil
+}
+
+func (d db) GetCurrentGeneration(ctx context.Context) (Generation, error) {
+	return d.getGeneration(ctx, model.GenerationCurrent)
+}
+
+func (d db) GetNextGeneration(ctx context.Context) (Generation, error) {
+	return d.getGeneration(ctx, model.GenerationNext)
+}
+
+func (d db) GetActiveGeneration(ctx context.Context) (Generation, error) {
+	return d.getGeneration(ctx, model.GenerationActive)
 }
 
 func (d db) DeleteNextGeneration(ctx context.Context) error {
 	g := d.q.Generation
-	_, err := d.q.WithContext(ctx).Generation.Where(g.Next).Attrs(g.Next, g.Generation.Zero()).Delete()
+	_, err := d.q.WithContext(ctx).Generation.Where(g.GenerationType.Eq(uint8(model.GenerationNext))).
+		Attrs(g.GenerationType.Value(uint8(model.GenerationNext)), g.Generation.Zero()).Delete()
 	return err
 }
 

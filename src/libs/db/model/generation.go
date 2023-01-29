@@ -1,8 +1,14 @@
 package model
 
+type GenerationType uint8
+
+const (
+	GenerationCurrent GenerationType = iota
+	GenerationNext
+	GenerationActive
+)
+
 type Generation struct {
-	Generation uint16
-	Current    bool
-	Next       bool
-	Active     bool
+	Generation     uint16
+	GenerationType `gorm:"primary_key"`
 }
