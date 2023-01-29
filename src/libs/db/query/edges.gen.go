@@ -30,6 +30,7 @@ func newEdge(db *gorm.DB, opts ...gen.DOOption) edge {
 	_edge.ID = field.NewInt64(tableName, "id")
 	_edge.FromId = field.NewInt64(tableName, "from_id")
 	_edge.ToId = field.NewInt64(tableName, "to_id")
+	_edge.Length = field.NewFloat64(tableName, "length")
 	_edge.Generation = field.NewUint16(tableName, "generation")
 	_edge.From = edgeBelongsToFrom{
 		db: db.Session(&gorm.Session{}),
@@ -55,6 +56,7 @@ type edge struct {
 	ID         field.Int64
 	FromId     field.Int64
 	ToId       field.Int64
+	Length     field.Float64
 	Generation field.Uint16
 	From       edgeBelongsToFrom
 
@@ -78,6 +80,7 @@ func (e *edge) updateTableName(table string) *edge {
 	e.ID = field.NewInt64(table, "id")
 	e.FromId = field.NewInt64(table, "from_id")
 	e.ToId = field.NewInt64(table, "to_id")
+	e.Length = field.NewFloat64(table, "length")
 	e.Generation = field.NewUint16(table, "generation")
 
 	e.fillFieldMap()
@@ -101,10 +104,11 @@ func (e *edge) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (e *edge) fillFieldMap() {
-	e.fieldMap = make(map[string]field.Expr, 6)
+	e.fieldMap = make(map[string]field.Expr, 7)
 	e.fieldMap["id"] = e.ID
 	e.fieldMap["from_id"] = e.FromId
 	e.fieldMap["to_id"] = e.ToId
+	e.fieldMap["length"] = e.Length
 	e.fieldMap["generation"] = e.Generation
 
 }
