@@ -112,7 +112,7 @@ func (d db) GetEdgesFrom(ctx context.Context, from []VertexId, generation Genera
 
 func (d db) SetNextGeneration(ctx context.Context, generation Generation) error {
 	g := d.q.Generation
-	c, err := d.q.WithContext(ctx).Generation.Where(g.Next).Update(g.Next, generation)
+	c, err := d.q.WithContext(ctx).Generation.Where(g.Next).Update(g.Generation, generation)
 	if err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func (d db) SetNextGeneration(ctx context.Context, generation Generation) error 
 
 func (d db) SetActiveGeneration(ctx context.Context, generation Generation) error {
 	g := d.q.Generation
-	c, err := d.q.WithContext(ctx).Generation.Where(g.Active).Update(g.Next, generation)
+	c, err := d.q.WithContext(ctx).Generation.Where(g.Active).Update(g.Generation, generation)
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ func (d db) GetNextGeneration(ctx context.Context) (Generation, error) {
 
 func (d db) GetActiveGeneration(ctx context.Context) (Generation, error) {
 	g := d.q.Generation
-	r, err := d.q.WithContext(ctx).Generation.Where(g.Active).Attrs(g.Next, g.Generation.Zero()).FirstOrCreate()
+	r, err := d.q.WithContext(ctx).Generation.Where(g.Active).Attrs(g.Active, g.Generation.Zero()).FirstOrCreate()
 	if err != nil {
 		return 0, err
 	}
@@ -169,7 +169,7 @@ func (d db) GetActiveGeneration(ctx context.Context) (Generation, error) {
 
 func (d db) SetCurrentGeneration(ctx context.Context, generation Generation) error {
 	g := d.q.Generation
-	c, err := d.q.WithContext(ctx).Generation.Where(g.Current).Update(g.Current, generation)
+	c, err := d.q.WithContext(ctx).Generation.Where(g.Current).Update(g.Generation, generation)
 	if err != nil {
 		return err
 	}
