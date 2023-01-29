@@ -226,7 +226,7 @@ func (d db) SetRegion(ctx context.Context, c CoordBounds, region RegionId, gener
 	var rowsAffected int64
 
 	err := d.q.WithContext(ctx).Vertex.Where(
-		v.Generation.Eq(generation),
+		v.Generation.Lte(generation),
 		v.Latitude.Gte(c.Latitude.Min),
 		v.Latitude.Lt(c.Latitude.Max),
 		v.Longitude.Gte(c.Longitude.Min),
@@ -252,7 +252,7 @@ func (d db) SetRegion(ctx context.Context, c CoordBounds, region RegionId, gener
 func (d db) GetVertexCount(ctx context.Context, c CoordBounds, generation Generation) (int64, error) {
 	v := d.q.Vertex
 	return d.q.WithContext(ctx).Vertex.Where(
-		v.Generation.Eq(generation),
+		v.Generation.Lte(generation),
 		v.Latitude.Gte(c.Latitude.Min),
 		v.Latitude.Lt(c.Latitude.Max),
 		v.Longitude.Gte(c.Longitude.Min),
@@ -263,7 +263,7 @@ func (d db) GetVertexCount(ctx context.Context, c CoordBounds, generation Genera
 func (d db) GetVertexCountOnVerticalSegment(ctx context.Context, latitude MinMax, longtitude float64, generation Generation) (int64, error) {
 	v := d.q.Vertex
 	return d.q.WithContext(ctx).Vertex.Where(
-		v.Generation.Eq(generation),
+		v.Generation.Lte(generation),
 		v.Latitude.Gte(latitude.Min),
 		v.Latitude.Lt(latitude.Max),
 		v.Longitude.Eq(longtitude),
@@ -273,7 +273,7 @@ func (d db) GetVertexCountOnVerticalSegment(ctx context.Context, latitude MinMax
 func (d db) GetVertexCountOnHorizontalSegment(ctx context.Context, latitude float64, longtitude MinMax, generation Generation) (int64, error) {
 	v := d.q.Vertex
 	return d.q.WithContext(ctx).Vertex.Where(
-		v.Generation.Eq(generation),
+		v.Generation.Lte(generation),
 		v.Latitude.Eq(latitude),
 		v.Longitude.Gte(longtitude.Min),
 		v.Longitude.Lt(longtitude.Max),
