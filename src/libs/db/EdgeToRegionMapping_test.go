@@ -42,7 +42,7 @@ func (s *dbSuite) TearDownTest() {
 	}
 }
 
-func (s *dbSuite) Test_Worker_EdgeToRegionMapping() {
+func (s *dbSuite) Test_EdgeToRegionMapping() {
 	const gen = 1
 	cases := []struct {
 		name             string
