@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/badochov/distributed-shortest-path/src/services/worker/api"
@@ -73,7 +74,9 @@ func (c *client) ShortestPath(ctx context.Context, args ShortestPathArgs) (res S
 }
 
 func (c *client) url(path string) string {
-	return fmt.Sprintf("http://%s%s", c.baseUrl, path)
+	url := fmt.Sprintf("http://%s%s", c.baseUrl, path)
+	log.Printf("Sending request to %s\n", url)
+	return url
 }
 
 type Deps struct {
