@@ -11,6 +11,6 @@ type ShortestPathRequest struct {
 }
 
 type ShortestPathResponse struct {
-	Distance int        `json:"distance"`
+	Distance float64    `json:"distance"`
 	Vertices []VertexId `json:"vertices"`
 }

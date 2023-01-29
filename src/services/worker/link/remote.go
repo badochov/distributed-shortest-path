@@ -23,17 +23,17 @@ func (l *remoteLink) Add(ctx context.Context, a, b int32) (int32, error) {
 	return resp.Res, nil
 }
 
-func (l *remoteLink) Init(ctx context.Context, minRegionId db.RegionId, maxRegionId db.RegionId, requestId api.RequestId) error {
-	_, err := l.client.Init(ctx, &proto.InitRequest{MinRegionId: uint32(minRegionId), MaxRegionId: uint32(maxRegionId), RequestId: uint64(requestId)})
+func (l *remoteLink) Init(ctx context.Context, requestId api.RequestId) error {
+	_, err := l.client.Init(ctx, &proto.InitRequest{RequestId: uint64(requestId)})
 	return err
 }
 
 func (l *remoteLink) Step(ctx context.Context, vertexId db.VertexId, distance float64, requestId api.RequestId) (db.VertexId, float64, error) {
-	resp, err := l.client.Step(ctx, &proto.StepRequest{VetrtexId: vertexId, Distance: distance, RequestId: uint64(requestId)})
+	resp, err := l.client.Step(ctx, &proto.StepRequest{VertexId: vertexId, Distance: distance, RequestId: uint64(requestId)})
 	if err != nil {
 		return 0, 0, err
 	}
-	return resp.VetrtexId, resp.Distance, nil
+	return resp.VertexId, resp.Distance, nil
 }
 
 var _ Link = &remoteLink{}

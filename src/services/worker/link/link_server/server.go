@@ -17,7 +17,7 @@ import (
 
 type Worker interface {
 	Add(ctx context.Context, a, b int32) (int32, error) // Example
-	Init(ctx context.Context, minRegionId db.RegionId, maxRegionId db.RegionId, requestId api.RequestId) error
+	Init(ctx context.Context, requestId api.RequestId) error
 	Step(ctx context.Context, vertexId db.VertexId, distance float64, requestId api.RequestId) (db.VertexId, float64, error)
 }
 
@@ -40,7 +40,7 @@ func (s *linkService) Add(ctx context.Context, req *proto.AddRequest) (*proto.Ad
 }
 
 func (s *linkService) Init(ctx context.Context, req *proto.InitRequest) (*proto.InitResponse, error) {
-	err := s.worker.Init(ctx, db.RegionId(req.MinRegionId), db.RegionId(req.MaxRegionId), api.RequestId(req.RequestId))
+	err := s.worker.Init(ctx, api.RequestId(req.RequestId))
 	if err != nil {
 		return nil, err
 	}
@@ -48,11 +48,11 @@ func (s *linkService) Init(ctx context.Context, req *proto.InitRequest) (*proto.
 }
 
 func (s *linkService) Step(ctx context.Context, req *proto.StepRequest) (*proto.StepResponse, error) {
-	vertexId, distance, err := s.worker.Step(ctx, req.VetrtexId, req.Distance, api.RequestId(req.RequestId))
+	vertexId, distance, err := s.worker.Step(ctx, req.VertexId, req.Distance, api.RequestId(req.RequestId))
 	if err != nil {
 		return nil, err
 	}
-	return &proto.StepResponse{VetrtexId: vertexId, Distance: distance}, nil
+	return &proto.StepResponse{VertexId: vertexId, Distance: distance}, nil
 }
 
 type serv struct {

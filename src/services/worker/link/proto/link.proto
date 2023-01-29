@@ -18,20 +18,18 @@ message AddResponse {
 }
 
 message InitRequest {
-  uint32 minRegionId = 1;
-  uint32 maxRegionId = 2;
-  uint64 requestId = 3;
+  uint64 requestId = 1;
 }
 
 message InitResponse {}
 
 message StepRequest {
-  int64 vetrtexId = 1;
+  int64 vertexId = 1;
   double distance = 2;
   uint64 requestId = 3;
 }
 
 message StepResponse {
-  int64 vetrtexId = 1;
+  int64 vertexId = 1;
   double distance = 2;
 }

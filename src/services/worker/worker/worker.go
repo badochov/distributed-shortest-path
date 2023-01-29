@@ -5,7 +5,6 @@ import (
 	"context"
 	"log"
 	"math"
-	"math/rand"
 
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/api"
@@ -64,42 +63,12 @@ func (w *worker) CalculateArcFlags(ctx context.Context) error {
 	return nil
 }
 
-func randomId(min db.RegionId, max db.RegionId) uint16 {
-	return uint16(rand.Intn(int(max-min))) + min
-}
-
-func (w *worker) Init(ctx context.Context, minRegionId db.RegionId, maxRegionId db.RegionId, requestId api.RequestId) error {
-
-	w.executions[requestId] = executionData{make(PriorityQueue, 0), make(map[db.VertexId]*Item), make(map[db.VertexId]bool)}
+func (w *worker) Init(ctx context.Context, requestId api.RequestId) error {
+	w.executions[requestId] = executionData{
+		inQueue:   make(map[db.VertexId]*Item),
+		processed: make(map[db.VertexId]bool),
+	}
 	return nil
-
-	// if minRegionId >= maxRegionId {
-	// 	w.executions[requestId] = executionData{make(PriorityQueue, 0), make(map[db.VertexId]*Item), make(map[db.VertexId]bool), nil, nil}
-	// 	return nil
-	// }
-	// leftChildId := minRegionId
-	// rightChildId := (minRegionId+maxRegionId)/2 + 1
-
-	// var leftChild, rightChild link.Link
-	// var err error
-	// _, leftChild, err = w.links[leftChildId].GetLink()
-	// if err != nil {
-	// 	return err
-	// }
-	// _, rightChild, err = w.links[rightChildId].GetLink()
-	// if err != nil {
-	// 	return err
-	// }
-	// w.executions[requestId] = executionData{make(PriorityQueue, 0), make(map[db.VertexId]*Item, 0), make(map[db.VertexId]bool), leftChild, rightChild}
-	// err = leftChild.Init(ctx, minRegionId+1, (minRegionId+maxRegionId)/2, requestId)
-	// if err != nil {
-	// 	return err
-	// }
-	// err = rightChild.Init(ctx, (minRegionId+maxRegionId)/2+2, maxRegionId, requestId)
-	// if err != nil {
-	// 	return err
-	// }
-	// return nil
 }
 
 func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float64, requestId api.RequestId) (db.VertexId, float64, error) {
@@ -132,53 +101,30 @@ func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float6
 		}
 	}
 
-	// if w.executions[requestId].leftChild != nil {
-	// 	leftVertexId, leftDistance, err := w.executions[requestId].leftChild.Step(ctx, vertexId, distance, requestId)
-	// 	if err != nil {
-	// 		return 0, 0, err
-	// 	}
-	// 	if leftDistance < outDistance {
-	// 		outVertexId, outDistance = leftVertexId, leftDistance
-	// 	}
-	// }
-	// if w.executions[requestId].rightChild != nil {
-	// 	rightVertexId, rightDistance, err := w.executions[requestId].rightChild.Step(ctx, vertexId, distance, requestId)
-	// 	if err != nil {
-	// 		return 0, 0, err
-	// 	}
-	// 	if rightDistance < outDistance {
-	// 		outVertexId, outDistance = rightVertexId, rightDistance
-	// 	}
-	// }
 	return outVertexId, outDistance, nil
 }
 
 func (w *worker) ShortestPath(ctx context.Context, args service.ShortestPathArgs) (service.ShortestPathResult, error) {
-	var err error
-
 	w.executionLinks[args.RequestId] = make([]link.Link, len(w.links))
-	i := 0
-	for _, regionManager := range w.links {
-		_, w.executionLinks[args.RequestId][i], err = regionManager.GetLink()
+	for i, regionManager := range w.links {
+		_, l, err := regionManager.GetLink()
 		if err != nil {
 			return service.ShortestPathResult{}, err
 		}
-		w.executionLinks[args.RequestId][i].Init(ctx, 0, 0, args.RequestId)
-		i++
+		if err := l.Init(ctx, args.RequestId); err != nil {
+			return service.ShortestPathResult{}, err
+		}
+		w.executionLinks[args.RequestId][i] = l
 	}
 
-	// queue, inQueue := w.executions[args.RequestId].queue, w.executions[args.RequestId].inQueue
-	// newItem := &Item{id: args.From, distance: 0}
-	// inQueue[args.From] = newItem
-	// heap.Push(&queue, newItem)
-
 	vertexId, distance := args.From, float64(0)
-	for vertexId != args.To || distance != math.MaxFloat64 {
-		newVertexId, newDistance := db.VertexId(0), math.MaxFloat64
-		for _, link := range w.executionLinks[args.RequestId] {
-			linkVertexId, linkDistance, linkErr := link.Step(ctx, vertexId, distance, args.RequestId)
-			if linkErr != nil {
-				return service.ShortestPathResult{}, linkErr
+	for vertexId != args.To || distance != math.Inf(1) {
+		newVertexId, newDistance := db.VertexId(0), math.Inf(1)
+		// TODO errorgroup - right now its not concurrent
+		for _, l := range w.executionLinks[args.RequestId] {
+			linkVertexId, linkDistance, err := l.Step(ctx, vertexId, distance, args.RequestId)
+			if err != nil {
+				return service.ShortestPathResult{}, err
 			}
 			if linkDistance < newDistance {
 				newVertexId, newDistance = linkVertexId, linkDistance
@@ -186,7 +132,7 @@ func (w *worker) ShortestPath(ctx context.Context, args service.ShortestPathArgs
 		}
 		vertexId, distance = newVertexId, newDistance
 	}
-	return service.ShortestPathResult{}, nil
+	return service.ShortestPathResult{Distance: distance}, nil
 }
 
 func (w *worker) LoadRegionData(ctx context.Context) (err error) {

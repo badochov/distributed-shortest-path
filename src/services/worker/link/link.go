@@ -13,7 +13,7 @@ import (
 type Link interface {
 	// TODO[wprzytula]: retries, consider backoff lib to unify retries in every method here
 	Add(ctx context.Context, a, b int32) (int32, error) // Example
-	Init(ctx context.Context, minRegionId db.RegionId, maxRegionId db.RegionId, requestId api.RequestId) error
+	Init(ctx context.Context, requestId api.RequestId) error
 	Step(ctx context.Context, vertexId db.VertexId, distance float64, requestId api.RequestId) (db.VertexId, float64, error)
 
 	io.Closer
