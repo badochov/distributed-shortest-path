@@ -92,7 +92,7 @@ func (d db) GetVertexIds(ctx context.Context, id RegionId, generation Generation
 func (d db) GetEdgesFrom(ctx context.Context, from []VertexId, generation Generation) (map[VertexId][]Edge, error) {
 	e := d.q.Edge
 
-	edges, err := d.q.WithContext(ctx).Edge.Where(e.Generation.Eq(generation), e.FromId.In(from...)).Find()
+	edges, err := d.q.WithContext(ctx).Edge.Where(e.Generation.Lte(generation), e.FromId.In(from...)).Find()
 	if err != nil {
 		return nil, err
 	}
