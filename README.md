@@ -38,7 +38,7 @@ Project calculating shortest path in a distributed graph.
 3. ```bash
     (cd src && go generate)
    ```
-4. If new models are adjust the list in `func (c*Cleaner) getAllTables()` in `src/libs/db/cleaner/cleaner.go`.
+4. If new models are added adjust the list in `func (c*Cleaner) getAllTables()` in `src/libs/db/cleaner/cleaner.go`.
 
 #### Cleaning postgres
 ```bash
