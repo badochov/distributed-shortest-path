@@ -13,8 +13,6 @@ import (
 
 type dbSuite struct {
 	suite.Suite
-
-	fs []*os.File
 }
 
 func Test_RegionDivider_Suite(t *testing.T) {
@@ -25,21 +23,15 @@ func (s *dbSuite) SetupSuite() {
 }
 
 func (s *dbSuite) newDb() db.DB {
-	path, err := os.CreateTemp(os.TempDir(), "region-divider-test.*.db")
+	f, err := os.CreateTemp(os.TempDir(), "region-divider-test.*.db")
 	s.Require().NoError(err)
-	s.fs = append(s.fs, path)
-	c, err := dbTesting.NewMockConn(path.Name())
+	path := f.Name()
+	s.Require().NoError(f.Close())
+	c, err := dbTesting.NewMockConn(path)
 	s.Require().NoError(err)
 	cl, err := db.Connect(c)
 	s.Require().NoError(err)
 	return cl
-}
-
-func (s *dbSuite) TearDownTest() {
-	for _, f := range s.fs {
-		err := f.Close()
-		s.Require().NoError(err)
-	}
 }
 
 func (s *dbSuite) Test_RegionDivider_DivideIntoRegions() {

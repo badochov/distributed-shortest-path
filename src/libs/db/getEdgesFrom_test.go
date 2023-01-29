@@ -2,15 +2,8 @@ package db
 
 import (
 	"context"
-	"testing"
 	"time"
-
-	"github.com/stretchr/testify/suite"
 )
-
-func Test_getEdgesFrom_Suite(t *testing.T) {
-	suite.Run(t, new(dbSuite))
-}
 
 func (s *dbSuite) Test_getEdgesFrom() {
 	const gen = 1
