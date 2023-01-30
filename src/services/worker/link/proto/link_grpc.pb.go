@@ -22,7 +22,6 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type LinkClient interface {
-	Add(ctx context.Context, in *AddRequest, opts ...grpc.CallOption) (*AddResponse, error)
 	Init(ctx context.Context, in *InitRequest, opts ...grpc.CallOption) (*InitResponse, error)
 	Step(ctx context.Context, in *StepRequest, opts ...grpc.CallOption) (*StepResponse, error)
 	Reconstruct(ctx context.Context, in *ReconstructRequest, opts ...grpc.CallOption) (*ReconstructResponse, error)
@@ -35,15 +34,6 @@ type linkClient struct {
 
 func NewLinkClient(cc grpc.ClientConnInterface) LinkClient {
 	return &linkClient{cc}
-}
-
-func (c *linkClient) Add(ctx context.Context, in *AddRequest, opts ...grpc.CallOption) (*AddResponse, error) {
-	out := new(AddResponse)
-	err := c.cc.Invoke(ctx, "/Link/Add", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *linkClient) Init(ctx context.Context, in *InitRequest, opts ...grpc.CallOption) (*InitResponse, error) {
@@ -86,7 +76,6 @@ func (c *linkClient) Finish(ctx context.Context, in *FinishRequest, opts ...grpc
 // All implementations must embed UnimplementedLinkServer
 // for forward compatibility
 type LinkServer interface {
-	Add(context.Context, *AddRequest) (*AddResponse, error)
 	Init(context.Context, *InitRequest) (*InitResponse, error)
 	Step(context.Context, *StepRequest) (*StepResponse, error)
 	Reconstruct(context.Context, *ReconstructRequest) (*ReconstructResponse, error)
@@ -98,9 +87,6 @@ type LinkServer interface {
 type UnimplementedLinkServer struct {
 }
 
-func (UnimplementedLinkServer) Add(context.Context, *AddRequest) (*AddResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Add not implemented")
-}
 func (UnimplementedLinkServer) Init(context.Context, *InitRequest) (*InitResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Init not implemented")
 }
@@ -124,24 +110,6 @@ type UnsafeLinkServer interface {
 
 func RegisterLinkServer(s grpc.ServiceRegistrar, srv LinkServer) {
 	s.RegisterService(&Link_ServiceDesc, srv)
-}
-
-func _Link_Add_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(LinkServer).Add(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/Link/Add",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LinkServer).Add(ctx, req.(*AddRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _Link_Init_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -223,10 +191,6 @@ var Link_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "Link",
 	HandlerType: (*LinkServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "Add",
-			Handler:    _Link_Add_Handler,
-		},
 		{
 			MethodName: "Init",
 			Handler:    _Link_Init_Handler,

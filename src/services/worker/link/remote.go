@@ -14,15 +14,6 @@ func (l *remoteLink) Close() error {
 	return l.conn.Close()
 }
 
-func (l *remoteLink) Add(ctx context.Context, a, b int32) (int32, error) {
-	// TODO [wp] think about retries.
-	resp, err := l.client.Add(ctx, &proto.AddRequest{A: a, B: b})
-	if err != nil {
-		return 0, err
-	}
-	return resp.Res, nil
-}
-
 func (l *remoteLink) Init(ctx context.Context, requestId api.RequestId) error {
 	_, err := l.client.Init(ctx, &proto.InitRequest{RequestId: uint64(requestId)})
 	return err

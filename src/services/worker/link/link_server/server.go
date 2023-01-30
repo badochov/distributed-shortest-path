@@ -16,7 +16,6 @@ import (
 )
 
 type Worker interface {
-	Add(ctx context.Context, a, b int32) (int32, error) // Example
 	Init(ctx context.Context, requestId api.RequestId) error
 	Step(ctx context.Context, vertexId db.VertexId, distance float64, through db.VertexId, requestId api.RequestId) (db.VertexId, float64, db.VertexId, error)
 	Reconstruct(ctx context.Context, vertexId db.VertexId, requestId api.RequestId) ([]db.VertexId, error)
@@ -31,14 +30,6 @@ type Deps struct {
 type linkService struct {
 	proto.UnimplementedLinkServer
 	worker Worker
-}
-
-func (s *linkService) Add(ctx context.Context, req *proto.AddRequest) (*proto.AddResponse, error) {
-	res, err := s.worker.Add(ctx, req.A, req.B)
-	if err != nil {
-		return nil, err
-	}
-	return &proto.AddResponse{Res: res}, nil
 }
 
 func (s *linkService) Init(ctx context.Context, req *proto.InitRequest) (*proto.InitResponse, error) {

@@ -386,10 +386,6 @@ func (w *worker) initDiscoverer(ctx context.Context) error {
 	return nil
 }
 
-func (w *worker) Add(ctx context.Context, a int32, b int32) (int32, error) {
-	return a + b, nil
-}
-
 func (w *worker) handleInstanceStatus(status discoverer.WorkerInstanceStatus) {
 	// TODO [wprzytula]
 }
