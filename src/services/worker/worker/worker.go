@@ -33,17 +33,15 @@ type Worker interface {
 type workerData struct {
 	vertices                    []db.VertexId
 	edges                       map[db.VertexId][]db.Edge
-	edgeTargets                 map[db.VertexId]bool
+	knownVertices               map[db.VertexId]bool
 	arcFlags                    []db.ArcFlag
 	neighbouringVerticesRegions map[db.EdgeId]db.RegionId
 }
 
 type executionData struct {
 	queue     PriorityQueue
-	inQueue   map[db.VertexId]*Item
+	queueItem map[db.VertexId]*Item
 	processed map[db.VertexId]bool
-	// leftChild  link.Link // leftChild == nil iff left child does not exist
-	// rightChild link.Link // rightChild == nil iff right child does not exist
 }
 
 type worker struct {
@@ -54,7 +52,7 @@ type worker struct {
 	data           workerData
 	links          map[db.RegionId]link.RegionManager
 	linkPort       int
-	executions     map[api.RequestId]executionData
+	executions     map[api.RequestId]*executionData
 	executionLinks map[api.RequestId][]link.Link
 }
 
@@ -64,8 +62,8 @@ func (w *worker) CalculateArcFlags(ctx context.Context) error {
 }
 
 func (w *worker) Init(ctx context.Context, requestId api.RequestId) error {
-	w.executions[requestId] = executionData{
-		inQueue:   make(map[db.VertexId]*Item),
+	w.executions[requestId] = &executionData{
+		queueItem: make(map[db.VertexId]*Item),
 		processed: make(map[db.VertexId]bool),
 	}
 	return nil
@@ -73,38 +71,39 @@ func (w *worker) Init(ctx context.Context, requestId api.RequestId) error {
 
 func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float64, requestId api.RequestId) (db.VertexId, float64, error) {
 	log.Println("vertex ", vertexId, " distance ", distance, " request id ", requestId)
-	queue, inQueue, processed := w.executions[requestId].queue, w.executions[requestId].inQueue, w.executions[requestId].processed
+	// TODO add mutex on executions
+	ex := w.executions[requestId]
 
-	if w.data.edgeTargets[vertexId] {
-		processed[vertexId] = true
+	if w.data.knownVertices[vertexId] {
+		ex.processed[vertexId] = true
 	}
 
 	for _, edge := range w.data.edges[vertexId] {
-		if !processed[edge.To] {
-			item, prs := inQueue[edge.To]
-			if !prs {
-				newItem := &Item{id: edge.To, distance: distance + edge.Length}
-				inQueue[edge.To] = newItem
-				heap.Push(&queue, newItem)
-			} else if distance+edge.Length < item.distance {
-				queue.update(item, distance+edge.Length)
+		d := distance + edge.Length
+		if !ex.processed[edge.To] {
+			item, inQueue := ex.queueItem[edge.To]
+			if !inQueue {
+				newItem := &Item{id: edge.To, distance: d}
+				ex.queueItem[edge.To] = newItem
+				heap.Push(&ex.queue, newItem)
+			} else if d < item.distance {
+				ex.queue.update(item, d)
 			}
 		}
 	}
 
-	outVertexId, outDistance := db.VertexId(0), math.MaxFloat64
-	for queue.Len() > 0 {
-		item := heap.Pop(&queue).(*Item)
-		if !processed[item.id] {
-			outVertexId, outDistance = item.id, item.distance
-			break
+	for ex.queue.Len() > 0 {
+		item := ex.queue[0] // Peak
+		if !ex.processed[item.id] {
+			return item.id, item.distance, nil
 		}
+		_ = heap.Pop(&ex.queue)
 	}
-
-	return outVertexId, outDistance, nil
+	return db.VertexId(-1), math.Inf(1), nil
 }
 
 func (w *worker) ShortestPath(ctx context.Context, args service.ShortestPathArgs) (service.ShortestPathResult, error) {
+	// TODO add mutex on executionLinks
 	w.executionLinks[args.RequestId] = make([]link.Link, len(w.links))
 	for i, regionManager := range w.links {
 		_, l, err := regionManager.GetLink()
@@ -118,8 +117,9 @@ func (w *worker) ShortestPath(ctx context.Context, args service.ShortestPathArgs
 	}
 
 	vertexId, distance := args.From, float64(0)
-	for vertexId != args.To || distance != math.Inf(1) {
-		newVertexId, newDistance := db.VertexId(0), math.Inf(1)
+	iters := 0
+	for vertexId != args.To {
+		newVertexId, newDistance := db.VertexId(-1), math.Inf(1)
 		// TODO errorgroup - right now its not concurrent
 		for _, l := range w.executionLinks[args.RequestId] {
 			linkVertexId, linkDistance, err := l.Step(ctx, vertexId, distance, args.RequestId)
@@ -131,6 +131,11 @@ func (w *worker) ShortestPath(ctx context.Context, args service.ShortestPathArgs
 			}
 		}
 		vertexId, distance = newVertexId, newDistance
+		iters++
+		if math.IsInf(distance, 1) {
+			log.Println("ITERS", iters)
+			return service.ShortestPathResult{NoPath: true}, nil
+		}
 	}
 	return service.ShortestPathResult{Distance: distance}, nil
 }
@@ -148,14 +153,20 @@ func (w *worker) LoadRegionData(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
-	eIds := make([]db.EdgeId, 0, len(w.data.edges))
-	w.data.edgeTargets = make(map[int64]bool)
+	w.data.knownVertices = make(map[int64]bool)
 	for _, edges := range w.data.edges {
 		for _, e := range edges {
-			eIds = append(eIds, e.Id)
-			w.data.edgeTargets[e.To] = true
+			w.data.knownVertices[e.To] = true
 		}
 	}
+
+	//eIds := make([]db.EdgeId, 0, len(w.data.edges))for _, edges := range w.data.edges {
+	//	for _, e := range edges {
+	//		eIds = append(eIds, e.Id)
+	//
+	//		eIds = append(eIds, e.Id)
+	//	}
+	//}
 	// w.data.arcFlags, err = w.db.GetArcFlags(ctx, eIds, w.generation)
 	// if err != nil {
 	// 	return
@@ -220,7 +231,7 @@ func New(deps Deps) (Worker, error) {
 		regionId:       deps.RegionID,
 		linkPort:       deps.LinkPort,
 		links:          make(map[db.RegionId]link.RegionManager),
-		executions:     make(map[api.RequestId]executionData),
+		executions:     make(map[api.RequestId]*executionData),
 		executionLinks: make(map[api.RequestId][]link.Link),
 	}
 	if err := w.initDiscoverer(deps.Context); err != nil {

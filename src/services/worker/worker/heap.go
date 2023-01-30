@@ -22,7 +22,7 @@ type PriorityQueue []*Item
 func (pq PriorityQueue) Len() int { return len(pq) }
 
 func (pq PriorityQueue) Less(i, j int) bool {
-	// We want Pop to give us the highest, not lowest, distance so we use greater than here.
+	// We want Pop to give us the highest, not lowest, distance, so we use greater than here.
 	return pq[i].distance < pq[j].distance
 }
 

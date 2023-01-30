@@ -98,6 +98,7 @@ func (e *executor) ShortestPath(req api.ShortestPathRequest) (resp api.ShortestP
 	return api.ShortestPathResponse{
 		Distance: res.Distance,
 		Vertices: res.Vertices,
+		NoPath:   res.NoPath,
 	}, http.StatusOK, nil
 }
 

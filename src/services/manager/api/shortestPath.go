@@ -8,6 +8,7 @@ type ShortestPathRequest struct {
 }
 
 type ShortestPathResponse struct {
-	Distance int        `json:"distance"`
+	NoPath   bool       `json:"no_path,omitempty"`
+	Distance float64    `json:"distance"`
 	Vertices []VertexId `json:"vertices"`
 }
