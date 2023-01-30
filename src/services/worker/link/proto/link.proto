@@ -26,10 +26,12 @@ message InitResponse {}
 message StepRequest {
   int64 vertexId = 1;
   double distance = 2;
-  uint64 requestId = 3;
+  int64 through = 3;
+  uint64 requestId = 4;
 }
 
 message StepResponse {
   int64 vertexId = 1;
   double distance = 2;
+  int64 through = 3;
 }

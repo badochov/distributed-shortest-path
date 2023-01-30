@@ -1,4 +1,4 @@
-// source: https://go-recipes.dev/dijkstras-algorithm-in-go-e1129b2f5c9e
+// Source: https://pkg.go.dev/container/heap#example-package-PriorityQueue
 
 package worker
 
@@ -12,6 +12,7 @@ import (
 type Item struct {
 	id       db.VertexId // The id of the item; arbitrary.
 	distance float64     // The distance of the item in the queue.
+	through  db.VertexId
 	// The index is needed by update and is maintained by the heap.Interface methods.
 	index int // The index of the item in the heap.
 }
@@ -22,7 +23,7 @@ type PriorityQueue []*Item
 func (pq PriorityQueue) Len() int { return len(pq) }
 
 func (pq PriorityQueue) Less(i, j int) bool {
-	// We want Pop to give us the highest, not lowest, distance, so we use greater than here.
+	// We want Pop to give us the lowest distance.
 	return pq[i].distance < pq[j].distance
 }
 
@@ -50,7 +51,8 @@ func (pq *PriorityQueue) Pop() any {
 }
 
 // update modifies the distance and id of an Item in the queue.
-func (pq *PriorityQueue) update(item *Item, distance float64) {
+func (pq *PriorityQueue) update(item *Item, distance float64, through db.VertexId) {
 	item.distance = distance
+	item.through = through
 	heap.Fix(pq, item.index)
 }
