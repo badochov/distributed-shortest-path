@@ -2,7 +2,10 @@ package service_manager
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
+	"time"
 
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	v1 "k8s.io/api/autoscaling/v1"
@@ -21,6 +24,7 @@ type WorkerServiceManager interface {
 	// Rescale rescales worker service to desired amount of replicas. Rescale to 0 to shut down.
 	Rescale(ctx context.Context, region db.RegionId, replicas int32) error
 	GetReplicas(ctx context.Context, region db.RegionId) (replicas int32, err error)
+	WaitForRescale(ctx context.Context, region db.RegionId) error
 }
 
 type manager struct {
@@ -59,6 +63,27 @@ func (m *manager) Rescale(ctx context.Context, regionId db.RegionId, replicas in
 
 	_, err = m.client.AppsV1().Deployments(m.namespace).UpdateScale(ctx, deploymentName, &sc, metav1.UpdateOptions{})
 	return err
+}
+
+func (m *manager) WaitForRescale(ctx context.Context, regionId db.RegionId) error {
+	deploymentName := m.getDeploymentName(regionId)
+
+	for ctx.Err() == nil {
+		s, err := m.client.AppsV1().Deployments(m.namespace).Get(ctx, deploymentName, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if s.Spec.Replicas == nil {
+			log.Printf("[STATUS][Region-%d] Nil spec replicas\n", regionId)
+			continue
+		}
+		log.Printf("[STATUS][Region-%d] Spec replicas: %d, Status replicas %d, Ready replicas %d\n", regionId, *s.Spec.Replicas, s.Status.Replicas, s.Status.ReadyReplicas)
+		if *s.Spec.Replicas == s.Status.Replicas && s.Status.ReadyReplicas == s.Status.Replicas {
+			return nil
+		}
+		time.Sleep(time.Second)
+	}
+	return errors.New("timeout waiting for rescale")
 }
 
 func New(deps Deps) WorkerServiceManager {

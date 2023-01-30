@@ -136,8 +136,8 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 	e.recalculateLock.Lock()
 	defer e.recalculateLock.Unlock()
 
-	ctx, can := context.WithTimeout(context.Background(), 10*time.Minute)
-	defer can()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
 
 	wrap := func(err error) (api.RecalculateDsResponse, int, error) {
 		// TODO [wprzytula] handle restart workers on failure.
@@ -146,10 +146,10 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 	}
 
 	// Shutdown worker service.
-	// log.Println("Shutting down workers")
-	// if err := e.rescaleAllRegions(ctx, 0); err != nil {
-	// 	return wrap(err)
-	// }
+	log.Println("Shutting down workers")
+	if err := e.rescaleAllRegions(ctx, 0); err != nil {
+		return wrap(err)
+	}
 	if err := e.incNextGen(ctx); err != nil {
 		return wrap(err) // TODO[wprzytula]: consider inc iff not yet incremented
 	}
@@ -161,10 +161,10 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 		return wrap(err)
 	}
 	// Start worker service.
-	// log.Println("Starting workers for arc flags calculation")
-	// if err := e.rescaleAllRegions(ctx, e.defaultWorkerReplicas); err != nil {
-	// 	return wrap(err)
-	// }
+	log.Println("Starting workers for arc flags calculation")
+	if err := e.rescaleAllRegions(ctx, e.defaultWorkerReplicas); err != nil {
+		return wrap(err)
+	}
 	log.Println("Calculating arc flags")
 	// TODO [wprzytula] wait for workers to be alive (eg. Add Healthz method to client and wait for it to respond with success)
 	// if err := e.calculateArcFlags(ctx); err != nil {
@@ -175,12 +175,12 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 	}
 	log.Println("Restarting workers")
 	// Restart worker service.
-	// if err := e.rescaleAllRegions(ctx, 0); err != nil {
-	// 	return wrap(err)
-	// }
-	// if err := e.rescaleAllRegions(ctx, e.defaultWorkerReplicas); err != nil {
-	// 	return wrap(err)
-	// }
+	if err := e.rescaleAllRegions(ctx, 0); err != nil {
+		return wrap(err)
+	}
+	if err := e.rescaleAllRegions(ctx, e.defaultWorkerReplicas); err != nil {
+		return wrap(err)
+	}
 	// TODO [wprzytula] wait for workers to be alive (eg. Add Healthz method to client and wait for it to respond with success)
 
 	return api.RecalculateDsResponse{}, http.StatusOK, nil
@@ -188,19 +188,34 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 
 func (e *executor) rescaleAllRegions(ctx context.Context, replicas int32) error {
 	// TODO [wprzytula] fix state where one of the regions didn't rescale properly.
-	errgrp, ctx := errgroup.WithContext(ctx)
+	errgrp, grpCtx := errgroup.WithContext(ctx)
 	for id := range e.clients {
+		id := id
 		errgrp.Go(func() error {
 			expBackoff := backoff.NewExponentialBackOff() // TODO [wprzytula] customize timeouts.
-			return backoff.Retry(func() error { return e.workerServerManager.Rescale(ctx, id, replicas) }, expBackoff)
+			return backoff.Retry(func() error { return e.workerServerManager.Rescale(grpCtx, id, replicas) }, expBackoff)
 		})
 	}
-	return errgrp.Wait()
+	if err := errgrp.Wait(); err != nil {
+		return fmt.Errorf("error rescaling deployments, %w", err)
+	}
+
+	waitErrGrp, grpCtx := errgroup.WithContext(ctx)
+	for id := range e.clients {
+		id := id
+		waitErrGrp.Go(func() error {
+			return e.workerServerManager.WaitForRescale(grpCtx, id)
+		})
+	}
+	if err := waitErrGrp.Wait(); err != nil {
+		return fmt.Errorf("error waiting for rescale, %w", err)
+	}
+	return nil
 }
 
 func (e *executor) incNextGen(ctx context.Context) (err error) {
-	ctx, can := context.WithTimeout(ctx, time.Second)
-	defer can()
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
 
 	// TODO [wprzytula] Think if retries should be implemented and how.
 	if err := e.db.SetNextGeneration(ctx, e.nextGeneration+1); err != nil {
@@ -212,24 +227,24 @@ func (e *executor) incNextGen(ctx context.Context) (err error) {
 }
 
 func (e *executor) getNextGen(ctx context.Context) (generation, error) {
-	ctx, can := context.WithTimeout(ctx, time.Second)
-	defer can()
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
 
 	// TODO [wprzytula] Think if retries should be implemented and how.
 	return e.db.GetNextGeneration(ctx)
 }
 
 func (e *executor) getGen(ctx context.Context) (generation, error) {
-	ctx, can := context.WithTimeout(ctx, time.Second)
-	defer can()
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
 
 	// TODO [wprzytula] Think if retries should be implemented and how.
 	return e.db.GetCurrentGeneration(ctx)
 }
 
 func (e *executor) setGenToNext(ctx context.Context) (err error) {
-	ctx, can := context.WithTimeout(ctx, time.Second)
-	defer can()
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
 
 	// TODO [wprzytula] Think if retries should be implemented and how.
 	if err := e.db.SetCurrentGeneration(ctx, e.nextGeneration); err != nil {
@@ -241,8 +256,8 @@ func (e *executor) setGenToNext(ctx context.Context) (err error) {
 }
 
 func (e *executor) setActiveGeneration(ctx context.Context, gen generation) error {
-	ctx, can := context.WithTimeout(ctx, time.Second)
-	defer can()
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
 
 	// TODO [wprzytula] Think if retries should be implemented and how.
 	if err := e.db.SetActiveGeneration(ctx, gen); err != nil {
@@ -252,8 +267,8 @@ func (e *executor) setActiveGeneration(ctx context.Context, gen generation) erro
 }
 
 func (e *executor) divideIntoRegions(ctx context.Context) error {
-	ctx, can := context.WithTimeout(ctx, time.Minute)
-	defer can()
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
 
 	// TODO [wprzytula] Think if retries should be implemented and how.
 	rd := regionDivider{
@@ -279,8 +294,8 @@ func (e *executor) Healthz() (resp api.HealthzResponse, code int, err error) {
 }
 
 func (e *executor) calculateArcFlags(baseCtx context.Context) error {
-	ctx, can := context.WithTimeout(baseCtx, 8*time.Minute) // TODO[wprzytula]
-	defer can()
+	ctx, cancel := context.WithTimeout(baseCtx, 8*time.Minute) // TODO[wprzytula]
+	defer cancel()
 
 	grp, grpCtx := errgroup.WithContext(ctx)
 
