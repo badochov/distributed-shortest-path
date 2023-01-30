@@ -5,6 +5,7 @@ import (
 	"context"
 	"log"
 	"math"
+	"sync"
 
 	"github.com/badochov/distributed-shortest-path/src/libs/db"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/api"
@@ -12,6 +13,7 @@ import (
 	"github.com/badochov/distributed-shortest-path/src/services/worker/link"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/link/link_server"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/service"
+	"golang.org/x/sync/errgroup"
 )
 
 type Deps struct {
@@ -45,15 +47,14 @@ type executionData struct {
 }
 
 type worker struct {
-	db             db.DB
-	discoverer     discoverer.Discoverer
-	generation     db.Generation
-	regionId       db.RegionId
-	data           workerData
-	links          map[db.RegionId]link.RegionManager
-	linkPort       int
-	executions     map[api.RequestId]*executionData
-	executionLinks map[api.RequestId][]link.Link
+	db         db.DB
+	discoverer discoverer.Discoverer
+	generation db.Generation
+	regionId   db.RegionId
+	data       workerData
+	links      map[db.RegionId]link.RegionManager
+	linkPort   int
+	executions map[api.RequestId]*executionData
 }
 
 func (w *worker) CalculateArcFlags(ctx context.Context) error {
@@ -79,8 +80,8 @@ func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float6
 	}
 
 	for _, edge := range w.data.edges[vertexId] {
-		d := distance + edge.Length
 		if !ex.processed[edge.To] {
+			d := distance + edge.Length
 			item, inQueue := ex.queueItem[edge.To]
 			if !inQueue {
 				newItem := &Item{id: edge.To, distance: d}
@@ -102,9 +103,106 @@ func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float6
 	return db.VertexId(-1), math.Inf(1), nil
 }
 
+//// shortestPathFast is more efficient version of ShortestPath. Albeit much more complicated probably completely not worth it.
+//func (w *worker) shortestPathFast(ctx context.Context, args service.ShortestPathArgs) (service.ShortestPathResult, error) {
+//	type newGenData struct {
+//		distance float64
+//		vertexId db.VertexId
+//	}
+//	type res struct {
+//		distance float64
+//		vertexId db.VertexId
+//		err      error
+//	}
+//	executionLinks := make([]link.Link, len(w.links))
+//	for i, regionManager := range w.links {
+//		_, l, err := regionManager.GetLink()
+//		if err != nil {
+//			return service.ShortestPathResult{}, err
+//		}
+//		if err := l.Init(ctx, args.RequestId); err != nil {
+//			return service.ShortestPathResult{}, err
+//		}
+//		executionLinks[i] = l
+//	}
+//
+//	newGenChans := make([]chan newGenData, len(executionLinks))
+//	resChan := make(chan res)
+//	ctx, cancel := context.WithCancel(ctx)
+//	for i, l := range executionLinks {
+//		newGenChan := make(chan newGenData)
+//		newGenChans[i] = newGenChan
+//		go func(l link.Link) {
+//			for data := range newGenChan {
+//				linkVertexId, linkDistance, err := l.Step(ctx, data.vertexId, data.distance, args.RequestId)
+//				if err != nil {
+//					resChan <- res{
+//						err: err,
+//					}
+//					return
+//				}
+//				resChan <- res{
+//					distance: linkDistance,
+//					vertexId: linkVertexId,
+//				}
+//			}
+//		}(l)
+//	}
+//	// Close new gen chans to stop goroutines.
+//	defer func() {
+//		for _, ch := range newGenChans {
+//			close(ch)
+//		}
+//	}()
+//
+//	iters := 0 // For debug purposes.
+//	data := newGenData{
+//		distance: 0,
+//		vertexId: args.From,
+//	}
+//	for data.vertexId != args.To {
+//		// Start Step requests.
+//		for _, ch := range newGenChans {
+//			ch <- data
+//		}
+//		data.distance = math.Inf(1)
+//
+//		// Get data from links.
+//		var err error
+//		for range newGenChans {
+//			r := <-resChan
+//			if r.err != nil {
+//				if err == nil {
+//					// If it was first error cancel the context.
+//					cancel()
+//				}
+//				err = multierror.Append(err, r.err)
+//			} else if r.distance < data.distance { // Update next vertex
+//				data = newGenData{
+//					distance: r.distance,
+//					vertexId: r.vertexId,
+//				}
+//			}
+//		}
+//		// Check error.
+//		if err != nil {
+//			// Context was canceled in err handler above.
+//			return service.ShortestPathResult{}, err
+//		}
+//
+//		iters++
+//		if math.IsInf(data.distance, 1) {
+//			log.Println("ITERS", iters)
+//			cancel()
+//			return service.ShortestPathResult{NoPath: true}, nil
+//		}
+//	}
+//	cancel()
+//	return service.ShortestPathResult{Distance: data.distance}, nil
+//}
+
 func (w *worker) ShortestPath(ctx context.Context, args service.ShortestPathArgs) (service.ShortestPathResult, error) {
-	// TODO add mutex on executionLinks
-	w.executionLinks[args.RequestId] = make([]link.Link, len(w.links))
+	executionLinks := make([]link.Link, len(w.links))
 	for i, regionManager := range w.links {
 		_, l, err := regionManager.GetLink()
 		if err != nil {
@@ -113,22 +211,32 @@ func (w *worker) ShortestPath(ctx context.Context, args service.ShortestPathArgs
 		if err := l.Init(ctx, args.RequestId); err != nil {
 			return service.ShortestPathResult{}, err
 		}
-		w.executionLinks[args.RequestId][i] = l
+		executionLinks[i] = l
 	}
 
 	vertexId, distance := args.From, float64(0)
 	iters := 0
+	var mutex sync.Mutex
 	for vertexId != args.To {
 		newVertexId, newDistance := db.VertexId(-1), math.Inf(1)
-		// TODO errorgroup - right now its not concurrent
-		for _, l := range w.executionLinks[args.RequestId] {
-			linkVertexId, linkDistance, err := l.Step(ctx, vertexId, distance, args.RequestId)
-			if err != nil {
-				return service.ShortestPathResult{}, err
-			}
-			if linkDistance < newDistance {
-				newVertexId, newDistance = linkVertexId, linkDistance
-			}
+		errGrp, ctx := errgroup.WithContext(ctx)
+		for _, l := range executionLinks {
+			l := l
+			errGrp.Go(func() error {
+				linkVertexId, linkDistance, err := l.Step(ctx, vertexId, distance, args.RequestId)
+				if err != nil {
+					return err
+				}
+				mutex.Lock() // More go-like would be to send the result via channel and aggregate them in main thread.
+				defer mutex.Unlock()
+				if linkDistance < newDistance {
+					newVertexId, newDistance = linkVertexId, linkDistance
+				}
+				return nil
+			})
+		}
+		if err := errGrp.Wait(); err != nil {
+			return service.ShortestPathResult{}, err
 		}
 		vertexId, distance = newVertexId, newDistance
 		iters++
@@ -226,13 +334,12 @@ func (w *worker) handleRegionData(ctx context.Context, data discoverer.RegionDat
 
 func New(deps Deps) (Worker, error) {
 	w := &worker{
-		db:             deps.Db,
-		discoverer:     deps.Discoverer,
-		regionId:       deps.RegionID,
-		linkPort:       deps.LinkPort,
-		links:          make(map[db.RegionId]link.RegionManager),
-		executions:     make(map[api.RequestId]*executionData),
-		executionLinks: make(map[api.RequestId][]link.Link),
+		db:         deps.Db,
+		discoverer: deps.Discoverer,
+		regionId:   deps.RegionID,
+		linkPort:   deps.LinkPort,
+		links:      make(map[db.RegionId]link.RegionManager),
+		executions: make(map[api.RequestId]*executionData),
 	}
 	if err := w.initDiscoverer(deps.Context); err != nil {
 		return nil, err
