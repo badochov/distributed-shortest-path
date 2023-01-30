@@ -36,6 +36,14 @@ func (l *remoteLink) Step(ctx context.Context, vertexId db.VertexId, distance fl
 	return resp.VertexId, resp.Distance, resp.Through, nil
 }
 
+func (l *remoteLink) Reconstruct(ctx context.Context, vertexId db.VertexId, requestId api.RequestId) ([]db.VertexId, error) {
+	resp, err := l.client.Reconstruct(ctx, &proto.ReconstructRequest{VertexId: vertexId, RequestId: uint64(requestId)})
+	if err != nil {
+		return nil, err
+	}
+	return resp.Path, nil
+}
+
 var _ Link = &remoteLink{}
 
 type remoteLink struct {

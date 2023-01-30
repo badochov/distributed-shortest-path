@@ -3,6 +3,7 @@ package worker
 import (
 	"container/heap"
 	"context"
+	"fmt"
 	"log"
 	"math"
 	"sync"
@@ -111,6 +112,17 @@ func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float6
 		_ = heap.Pop(&ex.queue)
 	}
 	return db.VertexId(-1), math.Inf(1), db.VertexId(-1), nil
+}
+
+func (w *worker) Reconstruct(ctx context.Context, vertexId db.VertexId, requestId api.RequestId) ([]db.VertexId, error) {
+	ex := w.executions[requestId]
+	path := make([]db.VertexId, 0)
+	vertexId, inRegion := ex.through[vertexId]
+	for inRegion {
+		path = append(path, vertexId)
+		vertexId, inRegion = ex.through[vertexId]
+	}
+	return path, nil
 }
 
 //// shortestPathFast is more efficient version of ShortestPath. Albeit much more complicated probably completely not worth it.
@@ -255,7 +267,26 @@ func (w *worker) ShortestPath(ctx context.Context, args service.ShortestPathArgs
 			return service.ShortestPathResult{NoPath: true}, nil
 		}
 	}
-	return service.ShortestPathResult{Distance: distance}, nil
+
+	path := []db.VertexId{vertexId}
+	for vertexId != args.From {
+		for _, l := range executionLinks {
+			linkPath, err := l.Reconstruct(ctx, vertexId, args.RequestId)
+			if err != nil {
+				return service.ShortestPathResult{}, err
+			}
+			if len(linkPath) > 0 {
+				path = append(path, linkPath...)
+				break
+			}
+		}
+		if path[len(path)-1] == vertexId {
+			return service.ShortestPathResult{Distance: distance, Vertices: path}, fmt.Errorf("Path reconstruction failed")
+		} else {
+			vertexId = path[len(path)-1]
+		}
+	}
+	return service.ShortestPathResult{Distance: distance, Vertices: path}, nil
 }
 
 func (w *worker) LoadRegionData(ctx context.Context) (err error) {
