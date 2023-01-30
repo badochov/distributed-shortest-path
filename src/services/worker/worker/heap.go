@@ -12,7 +12,6 @@ import (
 type Item struct {
 	id       db.VertexId // The id of the item; arbitrary.
 	distance float64     // The distance of the item in the queue.
-	through  db.VertexId
 	// The index is needed by update and is maintained by the heap.Interface methods.
 	index int // The index of the item in the heap.
 }
@@ -51,8 +50,7 @@ func (pq *PriorityQueue) Pop() any {
 }
 
 // update modifies the distance and id of an Item in the queue.
-func (pq *PriorityQueue) update(item *Item, distance float64, through db.VertexId) {
+func (pq *PriorityQueue) update(item *Item, distance float64) {
 	item.distance = distance
-	item.through = through
 	heap.Fix(pq, item.index)
 }

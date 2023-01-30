@@ -3,7 +3,6 @@ package worker
 import (
 	"container/heap"
 	"context"
-	"fmt"
 	"log"
 	"math"
 	"sync"
@@ -60,6 +59,16 @@ type worker struct {
 	executionsLock sync.RWMutex
 }
 
+func (w *worker) Finish(ctx context.Context, requestId api.RequestId) error {
+	w.executionsLock.Lock()
+	defer w.executionsLock.Unlock()
+	// TODO delete doesn't really free resources in go. Once upon a while we need to copy the map to free.
+	ex := w.executions[requestId]
+	*ex = executionData{}
+	delete(w.executions, requestId)
+	return nil
+}
+
 func (w *worker) CalculateArcFlags(ctx context.Context) error {
 	//TODO implement me
 	return nil
@@ -71,22 +80,18 @@ func (w *worker) Init(ctx context.Context, requestId api.RequestId) error {
 	w.executions[requestId] = &executionData{
 		queueItem: make(map[db.VertexId]*Item),
 		processed: make(map[db.VertexId]bool),
+		through:   make(map[db.VertexId]db.VertexId),
 	}
 	return nil
 }
 
 func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float64, through db.VertexId, requestId api.RequestId) (db.VertexId, float64, db.VertexId, error) {
-	log.Println("vertex ", vertexId, " distance ", distance, " request id ", requestId)
 	w.executionsLock.RLock()
 	ex := w.executions[requestId]
 	w.executionsLock.RUnlock()
 
-	_, inRegion := w.data.edges[vertexId]
-	if inRegion {
-		ex.through[vertexId] = through
-	}
-
 	if w.data.knownVertices[vertexId] {
+		ex.through[vertexId] = through
 		ex.processed[vertexId] = true
 	}
 
@@ -95,11 +100,13 @@ func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float6
 			d := distance + edge.Length
 			item, inQueue := ex.queueItem[edge.To]
 			if !inQueue {
-				newItem := &Item{id: edge.To, distance: d, through: vertexId}
+				ex.through[edge.To] = vertexId
+				newItem := &Item{id: edge.To, distance: d}
 				ex.queueItem[edge.To] = newItem
 				heap.Push(&ex.queue, newItem)
 			} else if d < item.distance {
-				ex.queue.update(item, d, vertexId)
+				ex.through[edge.To] = vertexId
+				ex.queue.update(item, d)
 			}
 		}
 	}
@@ -107,7 +114,7 @@ func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float6
 	for ex.queue.Len() > 0 {
 		item := ex.queue[0] // Peak
 		if !ex.processed[item.id] {
-			return item.id, item.distance, item.through, nil
+			return item.id, item.distance, ex.through[item.id], nil
 		}
 		_ = heap.Pop(&ex.queue)
 	}
@@ -115,8 +122,11 @@ func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float6
 }
 
 func (w *worker) Reconstruct(ctx context.Context, vertexId db.VertexId, requestId api.RequestId) ([]db.VertexId, error) {
+	w.executionsLock.RLock()
 	ex := w.executions[requestId]
-	path := make([]db.VertexId, 0)
+	w.executionsLock.RUnlock()
+
+	var path []db.VertexId
 	vertexId, inRegion := ex.through[vertexId]
 	for inRegion {
 		path = append(path, vertexId)
@@ -268,24 +278,49 @@ func (w *worker) ShortestPath(ctx context.Context, args service.ShortestPathArgs
 		}
 	}
 
+	// Reconstruct the path.
 	path := []db.VertexId{vertexId}
-	for vertexId != args.From {
+	for vertexId != -1 {
+		errGrp, ctx := errgroup.WithContext(ctx)
 		for _, l := range executionLinks {
-			linkPath, err := l.Reconstruct(ctx, vertexId, args.RequestId)
-			if err != nil {
-				return service.ShortestPathResult{}, err
-			}
-			if len(linkPath) > 0 {
-				path = append(path, linkPath...)
-				break
-			}
+			l := l
+			errGrp.Go(func() error {
+				linkPath, err := l.Reconstruct(ctx, vertexId, args.RequestId)
+				if err != nil {
+					return err
+				}
+				if len(linkPath) > 0 {
+					mutex.Lock()
+					path = append(path, linkPath...)
+					mutex.Unlock()
+				}
+				return nil
+			})
 		}
-		if path[len(path)-1] == vertexId {
-			return service.ShortestPathResult{Distance: distance, Vertices: path}, fmt.Errorf("Path reconstruction failed")
-		} else {
-			vertexId = path[len(path)-1]
+		if err := errGrp.Wait(); err != nil {
+			return service.ShortestPathResult{}, err
 		}
+
+		vertexId = path[len(path)-1]
 	}
+	path = path[:len(path)-1] // Last element is -1.
+	// Path is in reverse order.
+	for i := 0; i < len(path)/2; i++ {
+		path[i], path[len(path)-1] = path[len(path)-1], path[i]
+	}
+
+	// Free resources.
+	errGrp, ctx := errgroup.WithContext(ctx)
+	for _, l := range executionLinks {
+		l := l
+		errGrp.Go(func() error {
+			return l.Finish(ctx, args.RequestId)
+		})
+	}
+	if err := errGrp.Wait(); err != nil {
+		return service.ShortestPathResult{}, err
+	}
+
 	return service.ShortestPathResult{Distance: distance, Vertices: path}, nil
 }
 
@@ -306,6 +341,7 @@ func (w *worker) LoadRegionData(ctx context.Context) (err error) {
 	for _, edges := range w.data.edges {
 		for _, e := range edges {
 			w.data.knownVertices[e.To] = true
+			w.data.knownVertices[e.From] = true
 		}
 	}
 
@@ -366,7 +402,7 @@ func (w *worker) handleRegionData(ctx context.Context, data discoverer.RegionDat
 	}
 	err := l.UpdateInstances(ctx, data.Instances)
 	if err != nil {
-		log.Print(err)
+		log.Println(err)
 	}
 	if !ok {
 		w.links[data.RegionId] = l

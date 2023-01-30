@@ -16,6 +16,7 @@ type Link interface {
 	Init(ctx context.Context, requestId api.RequestId) error
 	Step(ctx context.Context, vertexId db.VertexId, distance float64, through db.VertexId, reqId api.RequestId) (db.VertexId, float64, db.VertexId, error)
 	Reconstruct(ctx context.Context, vertexId db.VertexId, requestId api.RequestId) ([]db.VertexId, error)
+	Finish(ctx context.Context, requestId api.RequestId) error
 
 	io.Closer
 }

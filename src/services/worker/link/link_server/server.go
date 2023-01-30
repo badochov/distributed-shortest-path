@@ -20,6 +20,7 @@ type Worker interface {
 	Init(ctx context.Context, requestId api.RequestId) error
 	Step(ctx context.Context, vertexId db.VertexId, distance float64, through db.VertexId, requestId api.RequestId) (db.VertexId, float64, db.VertexId, error)
 	Reconstruct(ctx context.Context, vertexId db.VertexId, requestId api.RequestId) ([]db.VertexId, error)
+	Finish(ctx context.Context, requestId api.RequestId) error
 }
 
 type Deps struct {
@@ -62,6 +63,13 @@ func (s *linkService) Reconstruct(ctx context.Context, req *proto.ReconstructReq
 		return nil, err
 	}
 	return &proto.ReconstructResponse{Path: path}, nil
+}
+
+func (s *linkService) Finish(ctx context.Context, req *proto.FinishRequest) (*proto.FinishResponse, error) {
+	if err := s.worker.Finish(ctx, api.RequestId(req.RequestId)); err != nil {
+		return nil, err
+	}
+	return &proto.FinishResponse{}, nil
 }
 
 type serv struct {

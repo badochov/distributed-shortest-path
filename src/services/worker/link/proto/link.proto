@@ -7,6 +7,7 @@ service Link {
   rpc Init(InitRequest) returns (InitResponse) {}
   rpc Step(StepRequest) returns (StepResponse) {}
   rpc Reconstruct(ReconstructRequest) returns (ReconstructResponse) {}
+  rpc Finish(FinishRequest) returns (FinishResponse) {}
 }
 
 message AddRequest {
@@ -23,6 +24,12 @@ message InitRequest {
 }
 
 message InitResponse {}
+
+message FinishRequest {
+  uint64 requestId = 1;
+}
+
+message FinishResponse {}
 
 message StepRequest {
   int64 vertexId = 1;

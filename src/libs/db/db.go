@@ -98,9 +98,6 @@ func (d db) GetEdgesFrom(ctx context.Context, from []VertexId, generation Genera
 	}
 
 	es := make(map[VertexId][]Edge, len(from))
-	for _, vertex := range from {
-		es[vertex] = make([]api.Edge, 0)
-	}
 	for _, edge := range edges {
 		es[edge.FromId] = append(es[edge.FromId], Edge{
 			From:   edge.FromId,

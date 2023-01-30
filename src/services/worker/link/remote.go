@@ -29,7 +29,7 @@ func (l *remoteLink) Init(ctx context.Context, requestId api.RequestId) error {
 }
 
 func (l *remoteLink) Step(ctx context.Context, vertexId db.VertexId, distance float64, through db.VertexId, requestId api.RequestId) (db.VertexId, float64, db.VertexId, error) {
-	resp, err := l.client.Step(ctx, &proto.StepRequest{VertexId: vertexId, Distance: distance, RequestId: uint64(requestId)})
+	resp, err := l.client.Step(ctx, &proto.StepRequest{VertexId: vertexId, Distance: distance, Through: through, RequestId: uint64(requestId)})
 	if err != nil {
 		return 0, 0, 0, err
 	}
@@ -42,6 +42,10 @@ func (l *remoteLink) Reconstruct(ctx context.Context, vertexId db.VertexId, requ
 		return nil, err
 	}
 	return resp.Path, nil
+}
+func (l *remoteLink) Finish(ctx context.Context, requestId api.RequestId) error {
+	_, err := l.client.Finish(ctx, &proto.FinishRequest{RequestId: uint64(requestId)})
+	return err
 }
 
 var _ Link = &remoteLink{}
