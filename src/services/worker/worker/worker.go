@@ -47,14 +47,15 @@ type executionData struct {
 }
 
 type worker struct {
-	db         db.DB
-	discoverer discoverer.Discoverer
-	generation db.Generation
-	regionId   db.RegionId
-	data       workerData
-	links      map[db.RegionId]link.RegionManager
-	linkPort   int
-	executions map[api.RequestId]*executionData
+	db             db.DB
+	discoverer     discoverer.Discoverer
+	generation     db.Generation
+	regionId       db.RegionId
+	data           workerData
+	links          map[db.RegionId]link.RegionManager
+	linkPort       int
+	executions     map[api.RequestId]*executionData
+	executionsLock sync.RWMutex
 }
 
 func (w *worker) CalculateArcFlags(ctx context.Context) error {
@@ -63,6 +64,8 @@ func (w *worker) CalculateArcFlags(ctx context.Context) error {
 }
 
 func (w *worker) Init(ctx context.Context, requestId api.RequestId) error {
+	w.executionsLock.Lock()
+	defer w.executionsLock.Unlock()
 	w.executions[requestId] = &executionData{
 		queueItem: make(map[db.VertexId]*Item),
 		processed: make(map[db.VertexId]bool),
@@ -72,8 +75,9 @@ func (w *worker) Init(ctx context.Context, requestId api.RequestId) error {
 
 func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float64, requestId api.RequestId) (db.VertexId, float64, error) {
 	log.Println("vertex ", vertexId, " distance ", distance, " request id ", requestId)
-	// TODO add mutex on executions
+	w.executionsLock.RLock()
 	ex := w.executions[requestId]
+	w.executionsLock.RUnlock()
 
 	if w.data.knownVertices[vertexId] {
 		ex.processed[vertexId] = true
