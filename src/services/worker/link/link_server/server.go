@@ -8,7 +8,7 @@ import (
 	"github.com/badochov/distributed-shortest-path/src/services/worker/api"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/common"
 	"github.com/badochov/distributed-shortest-path/src/services/worker/link/proto"
-	"github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
@@ -18,7 +18,8 @@ import (
 type Worker interface {
 	Add(ctx context.Context, a, b int32) (int32, error) // Example
 	Init(ctx context.Context, requestId api.RequestId) error
-	Step(ctx context.Context, vertexId db.VertexId, distance float64, requestId api.RequestId) (db.VertexId, float64, error)
+	Step(ctx context.Context, vertexId db.VertexId, distance float64, through db.VertexId, requestId api.RequestId) (db.VertexId, float64, db.VertexId, error)
+	Reconstruct(ctx context.Context, vertexId db.VertexId, requestId api.RequestId) ([]db.VertexId, error)
 }
 
 type Deps struct {
@@ -48,11 +49,19 @@ func (s *linkService) Init(ctx context.Context, req *proto.InitRequest) (*proto.
 }
 
 func (s *linkService) Step(ctx context.Context, req *proto.StepRequest) (*proto.StepResponse, error) {
-	vertexId, distance, err := s.worker.Step(ctx, req.VertexId, req.Distance, api.RequestId(req.RequestId))
+	vertexId, distance, through, err := s.worker.Step(ctx, req.VertexId, req.Distance, req.Through, api.RequestId(req.RequestId))
 	if err != nil {
 		return nil, err
 	}
-	return &proto.StepResponse{VertexId: vertexId, Distance: distance}, nil
+	return &proto.StepResponse{VertexId: vertexId, Distance: distance, Through: through}, nil
+}
+
+func (s *linkService) Reconstruct(ctx context.Context, req *proto.ReconstructRequest) (*proto.ReconstructResponse, error) {
+	path, err := s.worker.Reconstruct(ctx, req.VertexId, api.RequestId(req.RequestId))
+	if err != nil {
+		return nil, err
+	}
+	return &proto.ReconstructResponse{Path: path}, nil
 }
 
 type serv struct {

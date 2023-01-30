@@ -3,6 +3,7 @@ package worker
 import (
 	"container/heap"
 	"context"
+	"fmt"
 	"log"
 	"math"
 	"sync"
@@ -44,6 +45,7 @@ type executionData struct {
 	queue     PriorityQueue
 	queueItem map[db.VertexId]*Item
 	processed map[db.VertexId]bool
+	through   map[db.VertexId]db.VertexId
 }
 
 type worker struct {
@@ -73,11 +75,16 @@ func (w *worker) Init(ctx context.Context, requestId api.RequestId) error {
 	return nil
 }
 
-func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float64, requestId api.RequestId) (db.VertexId, float64, error) {
+func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float64, through db.VertexId, requestId api.RequestId) (db.VertexId, float64, db.VertexId, error) {
 	log.Println("vertex ", vertexId, " distance ", distance, " request id ", requestId)
 	w.executionsLock.RLock()
 	ex := w.executions[requestId]
 	w.executionsLock.RUnlock()
+
+	_, inRegion := w.data.edges[vertexId]
+	if inRegion {
+		ex.through[vertexId] = through
+	}
 
 	if w.data.knownVertices[vertexId] {
 		ex.processed[vertexId] = true
@@ -88,11 +95,11 @@ func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float6
 			d := distance + edge.Length
 			item, inQueue := ex.queueItem[edge.To]
 			if !inQueue {
-				newItem := &Item{id: edge.To, distance: d}
+				newItem := &Item{id: edge.To, distance: d, through: vertexId}
 				ex.queueItem[edge.To] = newItem
 				heap.Push(&ex.queue, newItem)
 			} else if d < item.distance {
-				ex.queue.update(item, d)
+				ex.queue.update(item, d, vertexId)
 			}
 		}
 	}
@@ -100,11 +107,22 @@ func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float6
 	for ex.queue.Len() > 0 {
 		item := ex.queue[0] // Peak
 		if !ex.processed[item.id] {
-			return item.id, item.distance, nil
+			return item.id, item.distance, item.through, nil
 		}
 		_ = heap.Pop(&ex.queue)
 	}
-	return db.VertexId(-1), math.Inf(1), nil
+	return db.VertexId(-1), math.Inf(1), db.VertexId(-1), nil
+}
+
+func (w *worker) Reconstruct(ctx context.Context, vertexId db.VertexId, requestId api.RequestId) ([]db.VertexId, error) {
+	ex := w.executions[requestId]
+	path := make([]db.VertexId, 0)
+	vertexId, inRegion := ex.through[vertexId]
+	for inRegion {
+		path = append(path, vertexId)
+		vertexId, inRegion = ex.through[vertexId]
+	}
+	return path, nil
 }
 
 //// shortestPathFast is more efficient version of ShortestPath. Albeit much more complicated probably completely not worth it.
@@ -218,23 +236,23 @@ func (w *worker) ShortestPath(ctx context.Context, args service.ShortestPathArgs
 		executionLinks[i] = l
 	}
 
-	vertexId, distance := args.From, float64(0)
+	vertexId, distance, through := args.From, float64(0), db.VertexId(-1)
 	iters := 0
 	var mutex sync.Mutex
 	for vertexId != args.To {
-		newVertexId, newDistance := db.VertexId(-1), math.Inf(1)
+		newVertexId, newDistance, newThrough := db.VertexId(-1), math.Inf(1), db.VertexId(-1)
 		errGrp, ctx := errgroup.WithContext(ctx)
 		for _, l := range executionLinks {
 			l := l
 			errGrp.Go(func() error {
-				linkVertexId, linkDistance, err := l.Step(ctx, vertexId, distance, args.RequestId)
+				linkVertexId, linkDistance, linkThrough, err := l.Step(ctx, vertexId, distance, through, args.RequestId)
 				if err != nil {
 					return err
 				}
 				mutex.Lock() // More go-like would be to send the result via channel and aggregate them in main thread.
 				defer mutex.Unlock()
 				if linkDistance < newDistance {
-					newVertexId, newDistance = linkVertexId, linkDistance
+					newVertexId, newDistance, newThrough = linkVertexId, linkDistance, linkThrough
 				}
 				return nil
 			})
@@ -242,14 +260,33 @@ func (w *worker) ShortestPath(ctx context.Context, args service.ShortestPathArgs
 		if err := errGrp.Wait(); err != nil {
 			return service.ShortestPathResult{}, err
 		}
-		vertexId, distance = newVertexId, newDistance
+		vertexId, distance, through = newVertexId, newDistance, newThrough
 		iters++
 		if math.IsInf(distance, 1) {
 			log.Println("ITERS", iters)
 			return service.ShortestPathResult{NoPath: true}, nil
 		}
 	}
-	return service.ShortestPathResult{Distance: distance}, nil
+
+	path := []db.VertexId{vertexId}
+	for vertexId != args.From {
+		for _, l := range executionLinks {
+			linkPath, err := l.Reconstruct(ctx, vertexId, args.RequestId)
+			if err != nil {
+				return service.ShortestPathResult{}, err
+			}
+			if len(linkPath) > 0 {
+				path = append(path, linkPath...)
+				break
+			}
+		}
+		if path[len(path)-1] == vertexId {
+			return service.ShortestPathResult{Distance: distance, Vertices: path}, fmt.Errorf("Path reconstruction failed")
+		} else {
+			vertexId = path[len(path)-1]
+		}
+	}
+	return service.ShortestPathResult{Distance: distance, Vertices: path}, nil
 }
 
 func (w *worker) LoadRegionData(ctx context.Context) (err error) {

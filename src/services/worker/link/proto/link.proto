@@ -6,6 +6,7 @@ service Link {
   rpc Add(AddRequest) returns (AddResponse) {}
   rpc Init(InitRequest) returns (InitResponse) {}
   rpc Step(StepRequest) returns (StepResponse) {}
+  rpc Reconstruct(ReconstructRequest) returns (ReconstructResponse) {}
 }
 
 message AddRequest {
@@ -26,10 +27,21 @@ message InitResponse {}
 message StepRequest {
   int64 vertexId = 1;
   double distance = 2;
-  uint64 requestId = 3;
+  int64 through = 3;
+  uint64 requestId = 4;
 }
 
 message StepResponse {
   int64 vertexId = 1;
   double distance = 2;
+  int64 through = 3;
+}
+
+message ReconstructRequest {
+  int64 vertexId = 1;
+  uint64 requestId = 2;
+}
+
+message ReconstructResponse {
+  repeated int64 path = 1;
 }
