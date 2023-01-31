@@ -1,6 +1,8 @@
 #!/usr/bin/env sh
 
-cd -P -- "$(dirname -- "$0")" || exit 1
+set -e
+
+cd -P -- "$(dirname -- "$0")"
 
 if [ "$1" = "--local" ]; then
   IS_LOCAL=true
@@ -13,8 +15,6 @@ kubectl apply -f workers-manager-role.yaml
 
 if [ "$IS_LOCAL" = true ]; then
   kubectl apply -f metrics-server.local.yaml
-else
-  kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
 fi
 
 ./postgres/deploy.sh
@@ -23,8 +23,9 @@ fi
 
 
 if [ "$IS_LOCAL" = true ]; then
-  ./workers/generate.sh --local || exit 1
+  ./workers/generate.sh --local
 else
-  ./workers/generate.sh || exit 1
+  ./workers/generate.sh
 fi
+
 ./workers/deploy.sh

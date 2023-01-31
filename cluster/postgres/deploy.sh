@@ -1,6 +1,8 @@
 #!/usr/bin/env sh
 
-cd -P -- "$(dirname -- "$0")" || exit 1
+set -e
+
+cd -P -- "$(dirname -- "$0")"
 
 kubectl apply -f postgres-namespace.yaml
 kubectl apply -f postgres-secrets.yaml
