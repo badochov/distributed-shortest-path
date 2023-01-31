@@ -11,7 +11,7 @@ spec:
     matchLabels:
       app: workers
       region: "{{.Region}}"
-#  replicas: 2
+  replicas: 1
   template:
     metadata:
       labels:
@@ -23,12 +23,12 @@ spec:
       - name: worker
         resources: # Add resources to test HPA.
           requests:
-            memory: "512Mi"
-            cpu: "0.5"
+            memory: "4Gi"
+            cpu: "2"
           limits:
-            memory: "1Gi"
-            cpu: "1"
-        image: shortest-path/worker:{{.Version}}
+            memory: "128Mi"
+            cpu: "0.25"
+        image: europe-central2-docker.pkg.dev/irio-376314/dsp-repo/worker:{{.Version}}
         envFrom:
           - configMapRef:
               name: postgres-config

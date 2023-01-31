@@ -17,7 +17,14 @@ spec:
       serviceAccountName: workers-manager
       containers:
       - name: manager
-        image: shortest-path/manager:0.0.1
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+          limits:
+            memory: "128Mi"
+            cpu: "0.25"
+        image: europe-central2-docker.pkg.dev/irio-376314/dsp-repo/manager:0.0.1
         env:
           - name: NUM_REGIONS
             value: "16"

@@ -161,11 +161,11 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 		return wrap(err)
 	}
 	// Start worker service.
-	log.Println("Starting workers for arc flags calculation")
-	if err := e.rescaleAllRegions(ctx, e.defaultWorkerReplicas); err != nil {
-		return wrap(err)
-	}
-	log.Println("Calculating arc flags")
+	//log.Println("Starting workers for arc flags calculation")
+	//if err := e.rescaleAllRegions(ctx, e.defaultWorkerReplicas); err != nil {
+	//	return wrap(err)
+	//}
+	//log.Println("Calculating arc flags")
 	// TODO [wprzytula] wait for workers to be alive (eg. Add Healthz method to client and wait for it to respond with success)
 	// if err := e.calculateArcFlags(ctx); err != nil {
 	// 	return wrap(err)
@@ -175,9 +175,9 @@ func (e *executor) RecalculateDS() (resp api.RecalculateDsResponse, code int, er
 	}
 	log.Println("Restarting workers")
 	// Restart worker service.
-	if err := e.rescaleAllRegions(ctx, 0); err != nil {
-		return wrap(err)
-	}
+	//if err := e.rescaleAllRegions(ctx, 0); err != nil {
+	//	return wrap(err)
+	//}
 	if err := e.rescaleAllRegions(ctx, e.defaultWorkerReplicas); err != nil {
 		return wrap(err)
 	}

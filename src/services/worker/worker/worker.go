@@ -86,6 +86,7 @@ func (w *worker) Init(ctx context.Context, requestId api.RequestId) error {
 }
 
 func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float64, through db.VertexId, requestId api.RequestId) (db.VertexId, float64, db.VertexId, error) {
+	log.Println("[STEP] Vertex", vertexId, "distance", distance, "through", through, "Request", requestId)
 	w.executionsLock.RLock()
 	ex := w.executions[requestId]
 	w.executionsLock.RUnlock()
@@ -122,6 +123,7 @@ func (w *worker) Step(ctx context.Context, vertexId db.VertexId, distance float6
 }
 
 func (w *worker) Reconstruct(ctx context.Context, vertexId db.VertexId, requestId api.RequestId) ([]db.VertexId, error) {
+	log.Println("[RECONSTRUCT] Vertex", vertexId, "Request", requestId)
 	w.executionsLock.RLock()
 	ex := w.executions[requestId]
 	w.executionsLock.RUnlock()
